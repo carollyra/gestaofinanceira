@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Every monetary value is an integer amount of cents (BRL). Never floats.
+//
+// Tables owned by a user carry `user_id`, and relations between two of them
+// use composite foreign keys (`[fk, user_id]` -> `[id, user_id]`). This lets
+// the database itself reject, for example, a transaction pointing to an
+// account that belongs to another user.
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum AccountType {
+  WALLET
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  INVESTMENT
+  OTHER
+}
+
+enum RecurrenceFrequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model User {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  accounts              Account[]
+  categories            Category[]
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  budgets               Budget[]
+  goals                 Goal[]
+
+  @@map("users")
+}
+
+model Account {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  name           String      @db.VarChar(60)
+  type           AccountType
+  initialBalance Int         @default(0) @map("initial_balance")
+  color          String      @default("#64748b") @db.VarChar(7)
+  archived       Boolean     @default(false)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+
+  @@unique([id, userId])
+  @@unique([userId, name])
+  @@map("accounts")
+}
+
+model Category {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  userId    String          @map("user_id") @db.Uuid
+  name      String          @db.VarChar(60)
+  type      TransactionType
+  color     String          @db.VarChar(7)
+  icon      String          @db.VarChar(40)
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  budgets               Budget[]
+
+  @@unique([id, userId])
+  @@unique([userId, type, name])
+  @@map("categories")
+}
+
+model Transaction {
+  id                     String          @id @default(uuid(7)) @db.Uuid
+  userId                 String          @map("user_id") @db.Uuid
+  accountId              String          @map("account_id") @db.Uuid
+  categoryId             String?         @map("category_id") @db.Uuid
+  recurringTransactionId String?         @map("recurring_transaction_id") @db.Uuid
+  type                   TransactionType
+  // Always positive; the sign comes from `type`
+  amount                 Int
+  date                   DateTime        @db.Date
+  description            String          @db.VarChar(255)
+  notes                  String?
+  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // NoAction (checked at end of statement) instead of Restrict, so deleting
+  // a user cascades through accounts and transactions in a single statement
+  account              Account               @relation(fields: [accountId, userId], references: [id, userId], onDelete: NoAction)
+  category             Category?             @relation(fields: [categoryId, userId], references: [id, userId], onDelete: NoAction)
+  recurringTransaction RecurringTransaction? @relation(fields: [recurringTransactionId], references: [id], onDelete: SetNull)
+
+  // One occurrence per recurring template per date: generation is idempotent
+  @@unique([recurringTransactionId, date])
+  @@index([userId, date(sort: Desc)])
+  @@index([userId, type, date])
+  @@index([userId, accountId])
+  @@index([userId, categoryId])
+  @@map("transactions")
+}
+
+model RecurringTransaction {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  accountId   String              @map("account_id") @db.Uuid
+  categoryId  String?             @map("category_id") @db.Uuid
+  type        TransactionType
+  amount      Int
+  description String              @db.VarChar(255)
+  notes       String?
+  frequency   RecurrenceFrequency
+  // WEEKLY: 0 (Sunday) to 6. MONTHLY/YEARLY: day of month, 1 to 31
+  // (clamped to the last day in shorter months). YEARLY uses start_date's month.
+  day         Int                 @db.SmallInt
+  startDate   DateTime            @map("start_date") @db.Date
+  endDate     DateTime?           @map("end_date") @db.Date
+  // Last occurrence date already generated; next run starts after it
+  lastRunDate DateTime?           @map("last_run_date") @db.Date
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account      Account       @relation(fields: [accountId, userId], references: [id, userId], onDelete: NoAction)
+  category     Category?     @relation(fields: [categoryId, userId], references: [id, userId], onDelete: NoAction)
+  transactions Transaction[]
+
+  @@unique([id, userId])
+  @@index([userId])
+  @@index([active, lastRunDate])
+  @@map("recurring_transactions")
+}
+
+model Budget {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  amount     Int
+  // First day of the reference month
+  month      DateTime @db.Date
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId, userId], references: [id, userId], onDelete: Cascade)
+
+  @@unique([userId, categoryId, month])
+  @@index([userId, month])
+  @@map("budgets")
+}
+
+model Goal {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  name          String    @db.VarChar(100)
+  targetAmount  Int       @map("target_amount")
+  currentAmount Int       @default(0) @map("current_amount")
+  deadline      DateTime? @db.Date
+  color         String    @default("#10b981") @db.VarChar(7)
+  icon          String    @default("target") @db.VarChar(40)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("goals")
+}
