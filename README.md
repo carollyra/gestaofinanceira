@@ -38,6 +38,22 @@ recorrências, orçamentos, metas de economia, importação de CSV e dashboard c
 `Goal` (valor alvo, valor atual, prazo). O schema completo está em
 [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma).
 
+## API
+
+Base: `/api`. Rotas autenticadas exigem `Authorization: Bearer <token>`. Erros seguem o formato
+`{ "message": string, "details"?: { campo: string[] } }`.
+
+| Método | Rota             | Auth | Descrição                            |
+| ------ | ---------------- | ---- | ------------------------------------ |
+| GET    | `/health`        |      | Health check                         |
+| POST   | `/auth/register` |      | Cadastro (cria as categorias padrão) |
+| POST   | `/auth/login`    |      | Login, retorna `{ user, token }`     |
+| GET    | `/auth/me`       | ✓    | Usuário autenticado                  |
+
+Segurança da autenticação: senhas com bcrypt, JWT HS256 com algoritmo fixado na verificação,
+rate limit em login/cadastro, mesma mensagem e mesmo tempo de resposta para e-mail inexistente
+e senha errada (evita enumeração de usuários).
+
 ## Estrutura
 
 ```
