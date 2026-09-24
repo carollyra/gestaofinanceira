@@ -54,6 +54,11 @@ Segurança da autenticação: senhas com bcrypt, JWT HS256 com algoritmo fixado 
 rate limit em login/cadastro, mesma mensagem e mesmo tempo de resposta para e-mail inexistente
 e senha errada (evita enumeração de usuários).
 
+Regras de negócio: o saldo da conta é calculado em uma única query (`saldo inicial + receitas −
+despesas`); conta com transações não pode ser excluída, apenas arquivada; o tipo da categoria é
+imutável; ao excluir uma categoria, suas transações passam para a categoria substituta do mesmo
+tipo ou ficam sem categoria.
+
 ## Estrutura
 
 ```
