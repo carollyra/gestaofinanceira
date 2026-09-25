@@ -1,25 +1,207 @@
-import { LogOut } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, PiggyBank, Scale } from 'lucide-react';
+import { useSearchParams } from 'react-router';
 
-import { Button } from '@/components/ui/Button';
+import { BalanceEvolutionChart } from '@/components/dashboard/BalanceEvolutionChart';
+import { CategoryBreakdownList } from '@/components/dashboard/CategoryBreakdownList';
+import { ChartCard, DataTable } from '@/components/dashboard/ChartCard';
+import { IncomeExpenseChart } from '@/components/dashboard/IncomeExpenseChart';
+import { MonthPicker } from '@/components/dashboard/MonthPicker';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { EmptyState, ErrorState, Skeleton } from '@/components/dashboard/states';
+import {
+  useDashboardSummary,
+  useExpensesByCategory,
+  useMonthlyEvolution,
+} from '@/hooks/useDashboard';
 import { useAuth } from '@/hooks/useAuth';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { formatCurrency, formatPercent } from '@/utils/money';
+import { currentMonth, formatMonthLong, formatMonthShort, isValidMonth } from '@/utils/month';
 
-// Placeholder until the dashboard step
+const LOAD_ERROR = 'Não foi possível carregar estes dados.';
+
 export function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const monthParam = searchParams.get('mes');
+  const month = isValidMonth(monthParam) ? monthParam : currentMonth();
+
+  const summary = useDashboardSummary(month);
+  const evolution = useMonthlyEvolution(month);
+  const byCategory = useExpensesByCategory(month);
+
+  // The month lives in the URL: shareable, and survives reloads and back/forward
+  const changeMonth = (next: string) =>
+    setSearchParams(next === currentMonth() ? {} : { mes: next }, { replace: true });
+
+  const evolutionData = evolution.data ?? [];
+  // 24 bars do not fit a phone: narrow screens show the last 6 months (the table keeps all 12)
+  const isWide = useMediaQuery('(min-width: 640px)');
+  const barMonths = isWide ? 12 : 6;
+  const barData = evolutionData.slice(-barMonths);
+  const hasMovement = evolutionData.some((point) => point.income > 0 || point.expense > 0);
+  const firstName = user?.name.split(' ')[0];
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-5xl flex-col gap-6 px-4 py-8">
-      <header className="flex items-center justify-between gap-4">
+    <div className="flex flex-col gap-6">
+      {/* Filters sit in one row above everything they scope */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-zinc-400">Bem-vindo(a),</p>
-          <h1 className="text-2xl font-semibold text-zinc-50">{user?.name}</h1>
+          <p className="text-sm text-zinc-400">Olá, {firstName}</p>
+          <h1 className="text-2xl font-semibold text-zinc-50">Visão geral</h1>
         </div>
-        <Button variant="ghost" onClick={logout}>
-          <LogOut aria-hidden className="size-4" />
-          Sair
-        </Button>
-      </header>
-      <p className="text-zinc-400">O dashboard será construído na próxima etapa.</p>
-    </main>
+        <MonthPicker month={month} onChange={changeMonth} />
+      </div>
+
+      <section
+        aria-label="Resumo do mês"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {summary.isPending ? (
+          Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-32" />)
+        ) : summary.isError ? (
+          <div className="col-span-full rounded-2xl border border-zinc-800 bg-zinc-900">
+            <ErrorState message={LOAD_ERROR} onRetry={() => void summary.refetch()} />
+          </div>
+        ) : (
+          <SummaryCards data={summary.data} refreshing={summary.isPlaceholderData} />
+        )}
+      </section>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
+        <ChartCard
+          title="Evolução do saldo"
+          subtitle="Saldo total no fim de cada mês, últimos 12 meses"
+          className="lg:col-span-3"
+          refreshing={evolution.isPlaceholderData}
+          table={
+            evolution.data && (
+              <DataTable
+                caption="Saldo total no fim de cada mês"
+                headers={['Mês', 'Saldo']}
+                rows={evolutionData.map((p) => [
+                  formatMonthShort(p.month),
+                  formatCurrency(p.closingBalance),
+                ])}
+              />
+            )
+          }
+        >
+          {evolution.isPending ? (
+            <Skeleton className="h-64" />
+          ) : evolution.isError ? (
+            <ErrorState message={LOAD_ERROR} onRetry={() => void evolution.refetch()} />
+          ) : (
+            <BalanceEvolutionChart data={evolutionData} />
+          )}
+        </ChartCard>
+
+        <ChartCard
+          title="Despesas por categoria"
+          subtitle={formatMonthLong(month)}
+          className="lg:col-span-2"
+          refreshing={byCategory.isPlaceholderData}
+          table={
+            byCategory.data &&
+            byCategory.data.categories.length > 0 && (
+              <DataTable
+                caption={`Despesas por categoria em ${formatMonthLong(month)}`}
+                headers={['Categoria', 'Valor', '%', 'Qtd.']}
+                rows={byCategory.data.categories.map((c) => [
+                  c.name,
+                  formatCurrency(c.total),
+                  formatPercent(c.percentage),
+                  c.count,
+                ])}
+              />
+            )
+          }
+        >
+          {byCategory.isPending ? (
+            <Skeleton className="h-64" />
+          ) : byCategory.isError ? (
+            <ErrorState message={LOAD_ERROR} onRetry={() => void byCategory.refetch()} />
+          ) : byCategory.data.categories.length === 0 ? (
+            <EmptyState message="Nenhuma despesa neste mês." />
+          ) : (
+            <CategoryBreakdownList categories={byCategory.data.categories} />
+          )}
+        </ChartCard>
+
+        <ChartCard
+          title="Receitas x despesas"
+          subtitle={`Por mês, últimos ${barMonths} meses`}
+          className="lg:col-span-5"
+          refreshing={evolution.isPlaceholderData}
+          table={
+            evolution.data && (
+              <DataTable
+                caption="Receitas e despesas por mês"
+                headers={['Mês', 'Receitas', 'Despesas', 'Resultado']}
+                rows={evolutionData.map((p) => [
+                  formatMonthShort(p.month),
+                  formatCurrency(p.income),
+                  formatCurrency(p.expense),
+                  formatCurrency(p.net, { signed: true }),
+                ])}
+              />
+            )
+          }
+        >
+          {evolution.isPending ? (
+            <Skeleton className="h-64" />
+          ) : evolution.isError ? (
+            <ErrorState message={LOAD_ERROR} onRetry={() => void evolution.refetch()} />
+          ) : hasMovement ? (
+            <IncomeExpenseChart data={barData} />
+          ) : (
+            <EmptyState message="Nenhuma receita ou despesa nos últimos 12 meses." />
+          )}
+        </ChartCard>
+      </div>
+    </div>
+  );
+}
+
+function SummaryCards({
+  data,
+  refreshing,
+}: {
+  data: NonNullable<ReturnType<typeof useDashboardSummary>['data']>;
+  refreshing: boolean;
+}) {
+  const savingsRate = data.income > 0 ? (data.net / data.income) * 100 : null;
+
+  return (
+    <div className={`contents ${refreshing ? '[&>*]:opacity-60' : ''}`}>
+      <StatCard
+        label="Saldo total"
+        value={formatCurrency(data.totalBalance)}
+        icon={<Scale aria-hidden className="size-4" />}
+        footnote="Soma de todas as contas"
+      />
+      <StatCard
+        label="Receitas do mês"
+        value={formatCurrency(data.income)}
+        icon={<ArrowUpCircle aria-hidden className="size-4" />}
+        delta={{ current: data.income, previous: data.previousMonth.income, upIsGood: true }}
+      />
+      <StatCard
+        label="Despesas do mês"
+        value={formatCurrency(data.expense)}
+        icon={<ArrowDownCircle aria-hidden className="size-4" />}
+        delta={{ current: data.expense, previous: data.previousMonth.expense, upIsGood: false }}
+      />
+      <StatCard
+        label="Resultado do mês"
+        value={formatCurrency(data.net, { signed: true })}
+        icon={<PiggyBank aria-hidden className="size-4" />}
+        footnote={
+          savingsRate === null
+            ? 'Sem receitas no mês'
+            : `${formatPercent(savingsRate)} das receitas guardados`
+        }
+      />
+    </div>
   );
 }

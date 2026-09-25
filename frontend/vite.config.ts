@@ -15,6 +15,21 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  // Pre-bundled on startup, so the first page load does not trigger a re-optimization
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom/client',
+      'react-router',
+      '@tanstack/react-query',
+      'recharts',
+      'lucide-react',
+      'react-hook-form',
+      '@hookform/resolvers/zod',
+      'zod',
+      'clsx',
+    ],
+  },
   test: {
     globals: true,
     environment: 'jsdom',

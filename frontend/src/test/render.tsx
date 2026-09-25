@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
@@ -5,10 +6,20 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 
 import { AuthProvider } from '@/contexts/AuthProvider';
 
-// Shows the current path so tests can assert redirects
+// Shows the current path and query so tests can assert redirects
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="location">{location.pathname}</div>;
+  return (
+    <div data-testid="location">
+      {location.pathname}
+      {location.search}
+    </div>
+  );
+}
+
+// Fresh client per test, no retries: failures show up immediately
+export function createTestQueryClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false } } });
 }
 
 interface Options {
@@ -21,17 +32,21 @@ export function renderWithProviders(
   ui: ReactElement,
   { route = '/', state, path = '*' }: Options = {},
 ) {
+  const [pathname, search] = route.split('?');
+
   return {
     user: userEvent.setup(),
     ...render(
-      <MemoryRouter initialEntries={[{ pathname: route, state }]}>
-        <AuthProvider>
-          <Routes>
-            <Route path={path} element={ui} />
-          </Routes>
-          <LocationProbe />
-        </AuthProvider>
-      </MemoryRouter>,
+      <QueryClientProvider client={createTestQueryClient()}>
+        <MemoryRouter initialEntries={[{ pathname, search: search ? `?${search}` : '', state }]}>
+          <AuthProvider>
+            <Routes>
+              <Route path={path} element={ui} />
+            </Routes>
+            <LocationProbe />
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
     ),
   };
 }

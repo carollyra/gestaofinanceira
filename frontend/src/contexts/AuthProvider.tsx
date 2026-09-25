@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { UNAUTHORIZED_EVENT } from '@/services/api';
@@ -13,11 +14,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStorage.get() ? 'loading' : 'unauthenticated',
   );
 
+  const queryClient = useQueryClient();
+
+  // Also drops cached data, so the next user never sees the previous one's numbers
   const logout = useCallback(() => {
     tokenStorage.clear();
+    queryClient.clear();
     setUser(null);
     setStatus('unauthenticated');
-  }, []);
+  }, [queryClient]);
 
   // Restores the session on load: a stored token is only trusted after /auth/me
   useEffect(() => {
@@ -45,11 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, logout);
   }, [logout]);
 
-  const startSession = useCallback(({ user, token }: AuthResponse) => {
-    tokenStorage.set(token);
-    setUser(user);
-    setStatus('authenticated');
-  }, []);
+  const startSession = useCallback(
+    ({ user, token }: AuthResponse) => {
+      queryClient.clear();
+      tokenStorage.set(token);
+      setUser(user);
+      setStatus('authenticated');
+    },
+    [queryClient],
+  );
 
   const login = useCallback(
     async (input: LoginInput) => startSession(await authService.login(input)),

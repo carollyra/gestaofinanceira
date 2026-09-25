@@ -211,6 +211,18 @@ npm run dev            # http://localhost:5173
   aparecem no input correspondente.
 - **Acessibilidade:** labels associados, `aria-invalid` e `aria-describedby` nos erros, botão de
   mostrar/ocultar senha com `aria-label` e `aria-pressed`, alertas com `role="alert"`.
+- **Dashboard:** cards de resumo (saldo total, receitas e despesas do mês com variação contra o mês
+  anterior, resultado e taxa de economia), evolução do saldo, receitas x despesas e despesas por
+  categoria. O mês fica na URL (`?mes=2026-09`) e é o único filtro, acima de todos os blocos, que
+  sempre mostram o mesmo recorte. Dados com TanStack Query: ao trocar de mês, o conteúdo anterior
+  fica esmaecido até os novos dados chegarem, sem piscar esqueletos.
+- **Gráficos (Recharts):** paleta categórica validada para daltonismo contra a superfície escura
+  (receitas e despesas usam os slots azul e laranja; verde/vermelho ficam reservados para status),
+  uma única escala por gráfico, linhas de 2px, barras de no máximo 24px, rótulo só no último ponto
+  e tooltip com crosshair. Despesas por categoria usam barras horizontais ordenadas (não pizza), com
+  a cor de cada categoria num marcador ao lado do nome e a cauda agrupada em "Outras". Todo
+  gráfico tem uma visualização em tabela equivalente. No celular, receitas x despesas mostra os
+  últimos 6 meses.
 - **Token:** guardado no `localStorage` por simplicidade. Em produção, um cookie `httpOnly`
   reduziria a exposição a XSS, ao custo de exigir proteção contra CSRF.
 

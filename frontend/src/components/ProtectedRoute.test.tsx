@@ -1,10 +1,11 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 
 import { AuthProvider } from '@/contexts/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/services/api';
-import { fakeUser, mockApi } from '@/test/render';
+import { createTestQueryClient, fakeUser, mockApi } from '@/test/render';
 
 import { ProtectedRoute } from './ProtectedRoute';
 import { PublicOnlyRoute } from './PublicOnlyRoute';
@@ -16,18 +17,20 @@ function Private() {
 
 function renderApp(route: string) {
   return render(
-    <MemoryRouter initialEntries={[route]}>
-      <AuthProvider>
-        <Routes>
-          <Route element={<PublicOnlyRoute />}>
-            <Route path="/login" element={<p>Tela de login</p>} />
-          </Route>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Private />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter initialEntries={[route]}>
+        <AuthProvider>
+          <Routes>
+            <Route element={<PublicOnlyRoute />}>
+              <Route path="/login" element={<p>Tela de login</p>} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Private />} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
