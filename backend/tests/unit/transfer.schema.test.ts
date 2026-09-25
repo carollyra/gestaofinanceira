@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { dateOnlySchema } from '../src/schemas/common.schema';
+import { dateOnlySchema } from '../../src/schemas/common.schema';
 import {
   createTransferSchema,
   listTransfersQuerySchema,
   updateTransferSchema,
-} from '../src/schemas/transfer.schema';
+} from '../../src/schemas/transfer.schema';
 
 const FROM = '01a0d063-b433-77a3-bd86-868f88c12daf';
 const TO = '01a0d063-ecb0-7149-bfd1-a1cf9760fdcb';

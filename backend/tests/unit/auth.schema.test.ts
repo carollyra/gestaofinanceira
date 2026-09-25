@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loginSchema, registerSchema } from '../src/schemas/auth.schema';
+import { loginSchema, registerSchema } from '../../src/schemas/auth.schema';
 
 const base = { name: 'Ana Souza', email: 'ana@example.com' };
 

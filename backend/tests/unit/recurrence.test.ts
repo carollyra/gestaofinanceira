@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDateOnly, parseDateOnly, todayInTimezone } from '../src/utils/date';
+import { formatDateOnly, parseDateOnly, todayInTimezone } from '../../src/utils/date';
 import {
   defaultDayFor,
   getNextOccurrence,
   getOccurrenceDates,
   isValidDay,
   type RecurrenceRule,
-} from '../src/utils/recurrence';
+} from '../../src/utils/recurrence';
 
 const d = parseDateOnly;
 const fmt = (dates: Date[]) => dates.map(formatDateOnly);

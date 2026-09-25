@@ -4,8 +4,8 @@ import {
   copyBudgetsSchema,
   createBudgetSchema,
   updateBudgetSchema,
-} from '../src/schemas/budget.schema';
-import { getBudgetStatus } from '../src/utils/budget-status';
+} from '../../src/schemas/budget.schema';
+import { getBudgetStatus } from '../../src/utils/budget-status';
 
 describe('getBudgetStatus', () => {
   it('is OK below 80% of the limit', () => {

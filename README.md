@@ -200,6 +200,33 @@ npm install
 npm run dev            # http://localhost:5173
 ```
 
+## Testes
+
+```bash
+cd backend
+npm run test:unit         # sem banco: parsing de CSV, regras de recorrência, schemas, filtros
+npm run test:integration  # contra um banco PostgreSQL real e descartável
+npm test                  # os dois
+npm run test:coverage
+```
+
+Os testes de integração usam `DATABASE_URL_TEST`, um banco separado cujas tabelas são apagadas a
+cada execução (o setup se recusa a rodar se a URL for igual à de desenvolvimento ou se o nome do
+banco não contiver `test`). As migrations são aplicadas automaticamente antes dos testes. Cada
+teste cria seus próprios usuários, então os arquivos rodam em paralelo.
+
+O que é coberto:
+
+| Área                       | Exemplos de casos                                                                                                                                                                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Saldos e agregações        | saldo com várias transações e transferências (sem multiplicar linhas no JOIN), somas acima do limite de `INTEGER`, resumo do mês, evolução com meses vazios e saldo acumulado, percentuais por categoria, orçamento só da categoria/mês, transferências fora de todos os totais |
+| Recorrentes sem duplicação | rodar várias vezes, 10 execuções concorrentes, execução atrasada com leitura antiga, ocorrência excluída não volta, dia 31, data final, pausa, conta arquivada, índice único no banco                                                                                           |
+| Parsing de CSV             | valores em formato brasileiro e internacional sem ponto flutuante, datas impossíveis, Windows-1252, preâmbulo do banco, linhas de saldo, crédito/débito, duplicatas exatas e possíveis                                                                                          |
+| Isolamento entre usuários  | GET/PATCH/DELETE em todos os recursos de outro usuário retornam 404, listagens e dashboards vazios, impossível referenciar conta/categoria alheia (inclusive direto no banco, pelas chaves compostas)                                                                           |
+
+Os testes de concorrência foram validados com mutações: removendo a trava do `last_run_date`, o
+`skipDuplicates` ou o advisory lock da importação, os testes correspondentes falham.
+
 ## Scripts
 
 Disponíveis em `backend/` e `frontend/`:

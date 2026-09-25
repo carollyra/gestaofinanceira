@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { describe, expect, it } from 'vitest';
 
-import { signToken, verifyToken } from '../src/utils/jwt';
+import { signToken, verifyToken } from '../../src/utils/jwt';
 
 describe('jwt utils', () => {
   it('signs a token that resolves back to the user id', () => {

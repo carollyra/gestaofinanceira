@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { findDuplicates } from '../src/utils/csv/duplicates';
-import { parseDateOnly } from '../src/utils/date';
+import { findDuplicates } from '../../src/utils/csv/duplicates';
+import { parseDateOnly } from '../../src/utils/date';
 
 const d = parseDateOnly;
 const row = (date: string, amount: number, description: string) => ({

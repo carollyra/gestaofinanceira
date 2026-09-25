@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { createAccountSchema, updateAccountSchema } from '../src/schemas/account.schema';
-import { createCategorySchema, updateCategorySchema } from '../src/schemas/category.schema';
+import { createAccountSchema, updateAccountSchema } from '../../src/schemas/account.schema';
+import { createCategorySchema, updateCategorySchema } from '../../src/schemas/category.schema';
 
 describe('account schemas', () => {
   it('defaults initialBalance to zero on create', () => {

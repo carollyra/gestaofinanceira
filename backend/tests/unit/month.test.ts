@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   categoryBreakdownQuerySchema,
   evolutionQuerySchema,
-} from '../src/schemas/dashboard.schema';
-import { addMonths, currentMonth, formatMonth, parseMonth } from '../src/utils/month';
+} from '../../src/schemas/dashboard.schema';
+import { addMonths, currentMonth, formatMonth, parseMonth } from '../../src/utils/month';
 
 describe('month utils', () => {
   it('parses and formats YYYY-MM', () => {

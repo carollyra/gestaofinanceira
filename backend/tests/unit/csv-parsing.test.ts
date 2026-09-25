@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { decodeCsvBuffer } from '../src/utils/csv/decode';
-import { parseAmountToCents } from '../src/utils/csv/parse-amount';
-import { parseStatementDate } from '../src/utils/csv/parse-date';
-import { detectDelimiter, parseStatementCsv } from '../src/utils/csv/statement-parser';
-import { formatDateOnly } from '../src/utils/date';
+import { decodeCsvBuffer } from '../../src/utils/csv/decode';
+import { parseAmountToCents } from '../../src/utils/csv/parse-amount';
+import { parseStatementDate } from '../../src/utils/csv/parse-date';
+import { detectDelimiter, parseStatementCsv } from '../../src/utils/csv/statement-parser';
+import { formatDateOnly } from '../../src/utils/date';
 
 describe('parseAmountToCents', () => {
   it.each([

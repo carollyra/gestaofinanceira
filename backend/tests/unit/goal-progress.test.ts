@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { createGoalSchema, updateGoalSchema } from '../src/schemas/goal.schema';
-import { parseDateOnly } from '../src/utils/date';
-import { calculateGoalProgress, monthsUntil } from '../src/utils/goal-progress';
+import { createGoalSchema, updateGoalSchema } from '../../src/schemas/goal.schema';
+import { parseDateOnly } from '../../src/utils/date';
+import { calculateGoalProgress, monthsUntil } from '../../src/utils/goal-progress';
 
 const d = parseDateOnly;
 const today = d('2026-09-25');

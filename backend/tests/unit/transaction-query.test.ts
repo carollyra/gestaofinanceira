@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { listTransactionsQuerySchema } from '../src/schemas/transaction.schema';
+import { listTransactionsQuerySchema } from '../../src/schemas/transaction.schema';
 import {
   buildTransactionOrderBy,
   buildTransactionWhere,
   escapeLikePattern,
-} from '../src/services/transaction-query';
+} from '../../src/services/transaction-query';
 
 const USER = '01a0d063-b433-77a3-bd86-868f88c12daf';
 const ACCOUNT = '01a0d063-ecb0-7149-bfd1-a1cf9760fdcb';
