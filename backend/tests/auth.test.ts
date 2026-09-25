@@ -45,10 +45,11 @@ describe('auth input validation', () => {
   it('rejects passwords longer than 72 bytes', async () => {
     const response = await request(app)
       .post('/api/auth/register')
-      .send({ name: 'Ana', email: 'ana@example.com', password: 'á'.repeat(40) });
+      // Meets every other rule: 'á' takes 2 bytes, so 40 of them + a digit = 81 bytes
+      .send({ name: 'Ana', email: 'ana@example.com', password: `${'á'.repeat(40)}1` });
 
     expect(response.status).toBe(400);
-    expect(response.body.details.password).toContain('Senha muito longa');
+    expect(response.body.details.password).toEqual(['Senha muito longa']);
   });
 
   it('rejects login without password', async () => {
