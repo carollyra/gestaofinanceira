@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
+import { MulterError } from 'multer';
 import { ZodError, z } from 'zod';
 
 import { Prisma } from '../generated/prisma/client';
@@ -17,6 +18,16 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
   if (err instanceof ZodError) {
     res.status(400).json({ message: 'Dados inválidos', details: z.flattenError(err).fieldErrors });
+    return;
+  }
+
+  if (err instanceof MulterError) {
+    res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({
+      message:
+        err.code === 'LIMIT_FILE_SIZE'
+          ? 'Arquivo muito grande (máximo de 2 MB)'
+          : 'Upload inválido',
+    });
     return;
   }
 

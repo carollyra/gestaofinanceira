@@ -115,6 +115,28 @@ status: `COMPLETED`, `ON_TRACK`/`BEHIND` (comparando com um plano linear da cria
 (`current = current ± valor`) com a condição no `WHERE`: requisições simultâneas não se
 sobrescrevem e uma retirada nunca deixa a meta negativa.
 
+### Importação de CSV
+
+Fluxo em duas etapas, sem estado no servidor: o preview analisa o arquivo e devolve as linhas; a
+confirmação recebe as linhas revisadas e valida tudo de novo (nunca confia no preview).
+
+- **Leitura:** detecta a codificação (UTF-8 ou Windows-1252, comum em bancos brasileiros), o
+  separador (`,` `;` tab `|`) e as colunas pelo nome (data, descrição/histórico, valor ou
+  crédito/débito, tipo, categoria), inclusive quando o banco coloca linhas de cabeçalho antes da
+  tabela. Linhas de saldo são ignoradas. Também aceita mapeamento manual de colunas e inversão de
+  sinal (faturas de cartão listam compras como valores positivos).
+- **Valores:** `1.234,56`, `R$ -45,90`, `(123,45)`, `1,234.56` etc. são convertidos para centavos
+  com aritmética de strings e inteiros, sem ponto flutuante.
+- **Erros por linha:** data impossível, valor inválido ou descrição ausente marcam só aquela linha,
+  com o número da linha no arquivo.
+- **Duplicatas:** `EXACT` (mesma data, valor, tipo e descrição, ignorando acentos e maiúsculas) ou
+  `POSSIBLE` (mesmo valor e tipo em até 2 dias). Cada transação existente casa com no máximo uma
+  linha: dois cafés iguais no arquivo contra um já lançado resultam em uma duplicata e uma nova.
+- **Categorização:** coluna de categoria do CSV → categoria mais usada pelo usuário para a mesma
+  descrição (histórico) → regras por palavra-chave (Uber → Transporte, Netflix → Assinaturas...).
+- **Confirmação:** roda numa transação com `pg_advisory_xact_lock` por conta e pula duplicatas
+  exatas por padrão, então confirmar duas vezes (ou em paralelo) não duplica a importação.
+
 ### Dashboard
 
 As agregações são feitas inteiramente no PostgreSQL: `SUM ... FILTER` para receitas e despesas do
