@@ -200,6 +200,20 @@ npm install
 npm run dev            # http://localhost:5173
 ```
 
+## Frontend
+
+- **Autenticação:** contexto React com o usuário e o status da sessão. Ao abrir o app, um token
+  salvo só é aceito depois de validado em `/auth/me`; qualquer resposta 401 durante o uso encerra a
+  sessão. Rotas protegidas redirecionam para o login e voltam para a página pedida depois de entrar.
+- **Formulários:** React Hook Form + Zod. As regras de senha (8+ caracteres, uma letra, um número)
+  são as mesmas do backend, para feedback imediato, com um checklist que marca cada requisito
+  enquanto a pessoa digita; o servidor continua validando, e os erros de campo retornados pela API
+  aparecem no input correspondente.
+- **Acessibilidade:** labels associados, `aria-invalid` e `aria-describedby` nos erros, botão de
+  mostrar/ocultar senha com `aria-label` e `aria-pressed`, alertas com `role="alert"`.
+- **Token:** guardado no `localStorage` por simplicidade. Em produção, um cookie `httpOnly`
+  reduziria a exposição a XSS, ao custo de exigir proteção contra CSRF.
+
 ## Testes
 
 ```bash
@@ -208,6 +222,9 @@ npm run test:unit         # sem banco: parsing de CSV, regras de recorrência, s
 npm run test:integration  # contra um banco PostgreSQL real e descartável
 npm test                  # os dois
 npm run test:coverage
+
+cd frontend
+npm test                  # componentes e páginas com Testing Library (API simulada)
 ```
 
 Os testes de integração usam `DATABASE_URL_TEST`, um banco separado cujas tabelas são apagadas a
