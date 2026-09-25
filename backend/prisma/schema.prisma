@@ -123,6 +123,9 @@ model Transaction {
   @@index([userId, type, date])
   @@index([userId, accountId])
   @@index([userId, categoryId])
+  // Trigram indexes make ILIKE '%term%' text search use an index (requires pg_trgm)
+  @@index([description(ops: raw("gin_trgm_ops"))], map: "transactions_description_trgm_idx", type: Gin)
+  @@index([notes(ops: raw("gin_trgm_ops"))], map: "transactions_notes_trgm_idx", type: Gin)
   @@map("transactions")
 }
 

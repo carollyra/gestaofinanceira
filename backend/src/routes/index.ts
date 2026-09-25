@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { accountRoutes } from './account.routes';
 import { authRoutes } from './auth.routes';
 import { categoryRoutes } from './category.routes';
+import { transactionRoutes } from './transaction.routes';
 import { transferRoutes } from './transfer.routes';
 
 export const routes = Router();
@@ -14,4 +15,5 @@ routes.get('/health', (_req, res) => {
 routes.use('/auth', authRoutes);
 routes.use('/accounts', accountRoutes);
 routes.use('/categories', categoryRoutes);
+routes.use('/transactions', transactionRoutes);
 routes.use('/transfers', transferRoutes);

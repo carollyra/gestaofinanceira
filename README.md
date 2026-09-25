@@ -59,9 +59,29 @@ Segurança da autenticação: senhas com bcrypt, JWT HS256 com algoritmo fixado 
 rate limit em login/cadastro, mesma mensagem e mesmo tempo de resposta para e-mail inexistente
 e senha errada (evita enumeração de usuários).
 
+### Listagem de transações
+
+`GET /transactions` aceita, todos opcionais:
+
+| Parâmetro                | Exemplo                       | Descrição                                                        |
+| ------------------------ | ----------------------------- | ---------------------------------------------------------------- |
+| `page`, `pageSize`       | `page=2&pageSize=50`          | Paginação (padrão 1 e 20; máximo 100 por página)                 |
+| `startDate`, `endDate`   | `startDate=2026-09-01`        | Período (inclusivo, `AAAA-MM-DD`)                                |
+| `type`                   | `type=EXPENSE`                | `INCOME` ou `EXPENSE`                                            |
+| `accountId`              | `accountId=<uuid>`            | Conta                                                            |
+| `categoryId`             | `categoryId=none`             | Categoria, ou `none` para sem categoria                          |
+| `search`                 | `search=conta luz`            | Cada palavra precisa aparecer na descrição ou nas observações    |
+| `minAmount`, `maxAmount` | `minAmount=1000`              | Faixa de valor em centavos                                       |
+| `sortBy`, `sortOrder`    | `sortBy=amount&sortOrder=asc` | `date`, `amount`, `description`, `createdAt`; padrão `date desc` |
+
+Resposta: `{ data, meta: { page, pageSize, total, totalPages }, summary: { income, expense, balance } }`.
+O `summary` soma todo o conjunto filtrado, não só a página atual. A busca usa `ILIKE` com índices
+trigram (`pg_trgm`) e escapa os curingas `%` e `_`. A ordenação sempre desempata pelo id (UUIDv7),
+então as páginas não repetem nem pulam registros.
+
 Regras de negócio: o saldo da conta é calculado em uma única query (`saldo inicial + receitas −
-despesas + transferências recebidas − transferências enviadas`); conta com transações não pode ser excluída, apenas arquivada; o tipo da categoria é
-imutável; ao excluir uma categoria, suas transações passam para a categoria substituta do mesmo
+despesas + transferências recebidas − transferências enviadas`); conta com transações não pode ser excluída, apenas arquivada; a categoria de uma transação precisa ser do mesmo tipo (receita/despesa); contas arquivadas não
+recebem novas movimentações; o tipo da categoria é imutável; ao excluir uma categoria, suas transações passam para a categoria substituta do mesmo
 tipo ou ficam sem categoria.
 
 ## Estrutura
