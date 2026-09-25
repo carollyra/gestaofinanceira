@@ -79,6 +79,15 @@ O `summary` soma todo o conjunto filtrado, não só a página atual. A busca usa
 trigram (`pg_trgm`) e escapa os curingas `%` e `_`. A ordenação sempre desempata pelo id (UUIDv7),
 então as páginas não repetem nem pulam registros.
 
+### Dashboard
+
+As agregações são feitas inteiramente no PostgreSQL: `SUM ... FILTER` para receitas e despesas do
+mês e do mês anterior em uma única varredura, `generate_series` para incluir meses sem movimento na
+evolução, função de janela (`SUM() OVER (ORDER BY mês)`) para o saldo de fechamento acumulado e
+`SUM(SUM(total)) OVER ()` para o percentual de cada categoria. Transferências não entram em
+nenhuma dessas somas. O "mês atual" é calculado no fuso `APP_TIMEZONE` (padrão
+`America/Sao_Paulo`), não no relógio UTC do servidor.
+
 Regras de negócio: o saldo da conta é calculado em uma única query (`saldo inicial + receitas −
 despesas + transferências recebidas − transferências enviadas`); conta com transações não pode ser excluída, apenas arquivada; a categoria de uma transação precisa ser do mesmo tipo (receita/despesa); contas arquivadas não
 recebem novas movimentações; o tipo da categoria é imutável; ao excluir uma categoria, suas transações passam para a categoria substituta do mesmo

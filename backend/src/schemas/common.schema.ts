@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { formatDateOnly, parseDateOnly } from '../utils/date';
 import { MAX_AMOUNT_CENTS } from '../utils/money';
+import { parseMonth } from '../utils/month';
 
 export const idParamSchema = z.object({
   id: z.uuid('Identificador inválido'),
@@ -57,3 +58,9 @@ export const optionalTextSchema = z
   .max(1000, 'Deve ter no máximo 1000 caracteres')
   .transform((value) => (value === '' ? null : value))
   .nullable();
+
+// Reference month in YYYY-MM, converted to a Date at UTC midnight on the 1st
+export const monthSchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mês deve estar no formato AAAA-MM')
+  .transform(parseMonth);

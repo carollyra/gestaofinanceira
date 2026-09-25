@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { accountRoutes } from './account.routes';
 import { authRoutes } from './auth.routes';
 import { categoryRoutes } from './category.routes';
+import { dashboardRoutes } from './dashboard.routes';
 import { transactionRoutes } from './transaction.routes';
 import { transferRoutes } from './transfer.routes';
 
@@ -16,4 +17,5 @@ routes.use('/auth', authRoutes);
 routes.use('/accounts', accountRoutes);
 routes.use('/categories', categoryRoutes);
 routes.use('/transactions', transactionRoutes);
+routes.use('/dashboard', dashboardRoutes);
 routes.use('/transfers', transferRoutes);
