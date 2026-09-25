@@ -79,6 +79,25 @@ O `summary` soma todo o conjunto filtrado, não só a página atual. A busca usa
 trigram (`pg_trgm`) e escapa os curingas `%` e `_`. A ordenação sempre desempata pelo id (UUIDv7),
 então as páginas não repetem nem pulam registros.
 
+### Transações recorrentes
+
+Um modelo tem frequência semanal (dia da semana 0–6), mensal (dia 1–31; dia 31 cai no último dia
+dos meses menores) ou anual (dia do mês de início), data de início e data final opcional. As
+ocorrências vencidas até hoje (no fuso `APP_TIMEZONE`) viram transações normais, geradas ao criar
+ou editar o modelo, por um agendador dentro do servidor (`RECURRING_JOB_INTERVAL_MINUTES`), pelo
+endpoint `/generate` ou por `npm run jobs:recurring` (para um cron externo).
+
+A geração não duplica mesmo rodando várias vezes ou em paralelo:
+
+1. Cada execução avança `last_run_date` com um `UPDATE ... WHERE last_run_date = <valor lido>`
+   dentro de uma transação. O `UPDATE` trava a linha; uma execução concorrente espera, não encontra
+   mais o valor antigo e não gera nada.
+2. O índice único `(recurring_transaction_id, date)` com `ON CONFLICT DO NOTHING` é uma segunda
+   barreira.
+3. Como a geração sempre começa depois de `last_run_date`, uma ocorrência excluída de propósito
+   pelo usuário não é recriada. Ao retomar um modelo pausado, o período pausado não é preenchido
+   retroativamente.
+
 ### Dashboard
 
 As agregações são feitas inteiramente no PostgreSQL: `SUM ... FILTER` para receitas e despesas do

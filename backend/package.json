@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "jobs:recurring": "tsx --env-file-if-exists=.env src/jobs/run-recurring.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

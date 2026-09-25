@@ -9,6 +9,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must have at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('1d'),
   BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
+  // How often the server generates due recurring transactions; 0 disables it
+  RECURRING_JOB_INTERVAL_MINUTES: z.coerce.number().int().min(0).default(60),
   // Defines "today" and the current month for users (dates are stored without timezone)
   APP_TIMEZONE: z
     .string()

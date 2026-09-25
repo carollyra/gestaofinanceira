@@ -9,6 +9,7 @@ import { AppError } from '../utils/app-error';
 import { formatDateOnly } from '../utils/date';
 import { buildPaginationMeta, toSkipTake } from '../utils/pagination';
 import { prisma } from '../utils/prisma';
+import { assertActiveAccount, assertCategoryMatchesType } from './ownership';
 import { buildTransactionOrderBy, buildTransactionWhere } from './transaction-query';
 
 const transactionSelect = {
@@ -29,39 +30,6 @@ type TransactionRecord = Prisma.TransactionGetPayload<{ select: typeof transacti
 
 function serialize(transaction: TransactionRecord) {
   return { ...transaction, date: formatDateOnly(transaction.date) };
-}
-
-async function validateAccount(userId: string, accountId: string) {
-  const account = await prisma.account.findFirst({
-    where: { id: accountId, userId },
-    select: { archived: true },
-  });
-
-  if (!account) {
-    throw new AppError('Conta não encontrada', 404);
-  }
-  if (account.archived) {
-    throw new AppError('Não é possível movimentar uma conta arquivada', 400);
-  }
-}
-
-async function validateCategory(userId: string, categoryId: string, type: TransactionType) {
-  const category = await prisma.category.findFirst({
-    where: { id: categoryId, userId },
-    select: { type: true },
-  });
-
-  if (!category) {
-    throw new AppError('Categoria não encontrada', 404);
-  }
-  if (category.type !== type) {
-    throw new AppError(
-      type === 'INCOME'
-        ? 'Uma receita precisa de uma categoria de receita'
-        : 'Uma despesa precisa de uma categoria de despesa',
-      400,
-    );
-  }
 }
 
 export async function listTransactions(userId: string, query: ListTransactionsQuery) {
@@ -110,10 +78,10 @@ export async function getTransaction(userId: string, transactionId: string) {
 }
 
 export async function createTransaction(userId: string, input: CreateTransactionInput) {
-  await validateAccount(userId, input.accountId);
+  await assertActiveAccount(userId, input.accountId);
 
   if (input.categoryId) {
-    await validateCategory(userId, input.categoryId, input.type);
+    await assertCategoryMatchesType(userId, input.categoryId, input.type);
   }
 
   const transaction = await prisma.transaction.create({
@@ -139,7 +107,7 @@ export async function updateTransaction(
   }
 
   if (input.accountId) {
-    await validateAccount(userId, input.accountId);
+    await assertActiveAccount(userId, input.accountId);
   }
 
   // Validates the final state: changing only the type must still match the stored category
@@ -147,7 +115,7 @@ export async function updateTransaction(
   const categoryId = input.categoryId === undefined ? current.categoryId : input.categoryId;
 
   if (categoryId && (input.categoryId !== undefined || input.type !== undefined)) {
-    await validateCategory(userId, categoryId, type);
+    await assertCategoryMatchesType(userId, categoryId, type);
   }
 
   const transaction = await prisma.transaction.update({
