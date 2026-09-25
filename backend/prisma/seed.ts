@@ -60,7 +60,9 @@ async function main() {
   };
 
   const transactions: Prisma.TransactionCreateManyInput[] = [];
+  const transfers: Prisma.TransferCreateManyInput[] = [];
   const today = new Date();
+  let previousCardBill = 0;
 
   for (let offset = MONTHS_OF_HISTORY - 1; offset >= 0; offset--) {
     const year = today.getUTCFullYear();
@@ -86,6 +88,26 @@ async function main() {
         accountId: account(accountName),
       });
     };
+
+    const transfer = (
+      day: number,
+      amount: number,
+      description: string,
+      fromName: string,
+      toName: string,
+    ) => {
+      if (day > lastDay || amount <= 0) return;
+      transfers.push({
+        userId: user.id,
+        amount,
+        description,
+        date: utcDate(year, month, day),
+        fromAccountId: account(fromName),
+        toAccountId: account(toName),
+      });
+    };
+
+    const cardExpensesBefore = transactions.length;
 
     add(5, 'INCOME', 650_000, 'Salário', 'Salário', 'Conta corrente');
     if (random() > 0.5) {
@@ -154,12 +176,23 @@ async function main() {
     if (random() > 0.7) {
       add(between(1, 28), 'EXPENSE', between(10_000, 40_000), 'Farmácia', 'Saúde', 'Carteira');
     }
+
+    // Pays last month's credit card bill and withdraws cash for the wallet
+    transfer(10, previousCardBill, 'Pagamento da fatura', 'Conta corrente', 'Cartão de crédito');
+    transfer(3, 40_000, 'Saque', 'Conta corrente', 'Carteira');
+
+    const cardId = account('Cartão de crédito');
+    previousCardBill = transactions
+      .slice(cardExpensesBefore)
+      .filter((t) => t.accountId === cardId)
+      .reduce((sum, t) => sum + t.amount, 0);
   }
 
   await prisma.transaction.createMany({ data: transactions });
+  await prisma.transfer.createMany({ data: transfers });
 
   console.info(
-    `Seed complete: ${user.categories.length} categories, ${user.accounts.length} accounts, ${transactions.length} transactions`,
+    `Seed complete: ${user.categories.length} categories, ${user.accounts.length} accounts, ${transactions.length} transactions, ${transfers.length} transfers`,
   );
   console.info(`Demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 }

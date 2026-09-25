@@ -22,7 +22,9 @@ interface BalanceFilters {
   includeArchived?: boolean;
 }
 
-// Current balance = initial balance + incomes - expenses, computed in a single query
+// Current balance = initial balance + incomes - expenses + transfers in - transfers out.
+// Each movement table is pre-aggregated per account in its own subquery: joining
+// the raw tables directly would multiply rows and inflate the sums.
 async function queryAccountsWithBalance(userId: string, filters: BalanceFilters = {}) {
   const accountFilter = filters.accountId
     ? Prisma.sql`AND a.id = ${filters.accountId}::uuid`
@@ -41,16 +43,32 @@ async function queryAccountsWithBalance(userId: string, filters: BalanceFilters 
       a.archived,
       a.created_at AS "createdAt",
       a.updated_at AS "updatedAt",
-      a.initial_balance + COALESCE(
-        SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END),
-        0
-      ) AS balance
+      a.initial_balance
+        + COALESCE(tx.net, 0)
+        + COALESCE(tr_in.total, 0)
+        - COALESCE(tr_out.total, 0) AS balance
     FROM accounts a
-    LEFT JOIN transactions t ON t.account_id = a.id AND t.user_id = a.user_id
+    LEFT JOIN (
+      SELECT account_id, SUM(CASE WHEN type = 'INCOME' THEN amount ELSE -amount END) AS net
+      FROM transactions
+      WHERE user_id = ${userId}::uuid
+      GROUP BY account_id
+    ) tx ON tx.account_id = a.id
+    LEFT JOIN (
+      SELECT to_account_id, SUM(amount) AS total
+      FROM transfers
+      WHERE user_id = ${userId}::uuid
+      GROUP BY to_account_id
+    ) tr_in ON tr_in.to_account_id = a.id
+    LEFT JOIN (
+      SELECT from_account_id, SUM(amount) AS total
+      FROM transfers
+      WHERE user_id = ${userId}::uuid
+      GROUP BY from_account_id
+    ) tr_out ON tr_out.from_account_id = a.id
     WHERE a.user_id = ${userId}::uuid
       ${accountFilter}
       ${archivedFilter}
-    GROUP BY a.id
     ORDER BY a.archived, a.created_at
   `;
 
@@ -126,16 +144,25 @@ export async function updateAccount(userId: string, accountId: string, input: Up
 export async function deleteAccount(userId: string, accountId: string) {
   const account = await prisma.account.findFirst({
     where: { id: accountId, userId },
-    select: { _count: { select: { transactions: true, recurringTransactions: true } } },
+    select: {
+      _count: {
+        select: {
+          transactions: true,
+          recurringTransactions: true,
+          transfersIn: true,
+          transfersOut: true,
+        },
+      },
+    },
   });
 
   if (!account) {
     throw new AppError('Conta não encontrada', 404);
   }
 
-  if (account._count.transactions > 0 || account._count.recurringTransactions > 0) {
+  if (Object.values(account._count).some((count) => count > 0)) {
     throw new AppError(
-      'Esta conta possui transações. Arquive-a em vez de excluir para manter o histórico.',
+      'Esta conta possui movimentações. Arquive-a em vez de excluir para manter o histórico.',
       409,
     );
   }

@@ -29,13 +29,18 @@ recorrências, orçamentos, metas de economia, importação de CSV e dashboard c
 - **Integridade no banco.** Constraints `CHECK` garantem valores positivos, cores em hex, dia de
   recorrência válido e mês de orçamento sempre no dia 1. Recorrências têm índice único
   `(recurring_transaction_id, date)`, o que torna a geração de ocorrências idempotente.
+- **Transferências em tabela própria.** Mover dinheiro entre contas (pagar a fatura do cartão,
+  sacar para a carteira) não é receita nem despesa. Por isso transferências ficam na tabela
+  `transfers`, e não como um tipo de transação: totais de entrada/saída e relatórios por categoria
+  leem apenas `transactions`, então é impossível uma transferência inflar esses números. Elas
+  entram só no saldo das contas, e o saldo total não muda (o que sai de uma conta entra na outra).
 - **Datas sem fuso.** Datas de transação usam o tipo `date` do PostgreSQL, sem horário.
 
 ## Modelagem
 
 `User` · `Account` (saldo inicial) · `Category` (receita/despesa, cor, ícone) · `Transaction` ·
 `RecurringTransaction` (semanal, mensal, anual) · `Budget` (limite por categoria e mês) ·
-`Goal` (valor alvo, valor atual, prazo). O schema completo está em
+`Transfer` (conta de origem → conta de destino) · `Goal` (valor alvo, valor atual, prazo). O schema completo está em
 [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma).
 
 ## API
@@ -55,7 +60,7 @@ rate limit em login/cadastro, mesma mensagem e mesmo tempo de resposta para e-ma
 e senha errada (evita enumeração de usuários).
 
 Regras de negócio: o saldo da conta é calculado em uma única query (`saldo inicial + receitas −
-despesas`); conta com transações não pode ser excluída, apenas arquivada; o tipo da categoria é
+despesas + transferências recebidas − transferências enviadas`); conta com transações não pode ser excluída, apenas arquivada; o tipo da categoria é
 imutável; ao excluir uma categoria, suas transações passam para a categoria substituta do mesmo
 tipo ou ficam sem categoria.
 

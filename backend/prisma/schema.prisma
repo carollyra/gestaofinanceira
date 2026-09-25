@@ -46,6 +46,7 @@ model User {
   categories            Category[]
   transactions          Transaction[]
   recurringTransactions RecurringTransaction[]
+  transfers             Transfer[]
   budgets               Budget[]
   goals                 Goal[]
 
@@ -66,6 +67,8 @@ model Account {
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions          Transaction[]
   recurringTransactions RecurringTransaction[]
+  transfersOut          Transfer[]             @relation("TransferFrom")
+  transfersIn           Transfer[]             @relation("TransferTo")
 
   @@unique([id, userId])
   @@unique([userId, name])
@@ -121,6 +124,31 @@ model Transaction {
   @@index([userId, accountId])
   @@index([userId, categoryId])
   @@map("transactions")
+}
+
+// Moves money between two accounts of the same user. Lives in its own table
+// (not as a transaction type) so it can never leak into income/expense totals
+// or category reports; it only affects account balances.
+model Transfer {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  fromAccountId String   @map("from_account_id") @db.Uuid
+  toAccountId   String   @map("to_account_id") @db.Uuid
+  amount        Int
+  date          DateTime @db.Date
+  description   String   @db.VarChar(255)
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccount Account @relation("TransferFrom", fields: [fromAccountId, userId], references: [id, userId], onDelete: NoAction)
+  toAccount   Account @relation("TransferTo", fields: [toAccountId, userId], references: [id, userId], onDelete: NoAction)
+
+  @@index([userId, date(sort: Desc)])
+  @@index([userId, fromAccountId])
+  @@index([userId, toAccountId])
+  @@map("transfers")
 }
 
 model RecurringTransaction {
