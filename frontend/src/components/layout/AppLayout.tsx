@@ -1,10 +1,13 @@
-import { LayoutDashboard, LogOut, Wallet } from 'lucide-react';
+import { ArrowLeftRight, LayoutDashboard, LogOut, Wallet } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router';
 
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/utils/cn';
 
-const NAV_ITEMS = [{ to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true }];
+const NAV_ITEMS = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/transacoes', label: 'Transações', icon: ArrowLeftRight, end: false },
+];
 
 export function AppLayout() {
   const { user, logout } = useAuth();
@@ -18,7 +21,7 @@ export function AppLayout() {
             Finanças
           </span>
 
-          <nav aria-label="Principal" className="flex flex-1 gap-1 overflow-x-auto">
+          <nav aria-label="Principal" className="hidden flex-1 gap-1 md:flex">
             {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
@@ -37,21 +40,49 @@ export function AppLayout() {
             ))}
           </nav>
 
-          <span className="hidden truncate text-sm text-zinc-400 sm:block">{user?.name}</span>
+          <span className="ml-auto hidden truncate text-sm text-zinc-400 sm:block md:ml-0">
+            {user?.name}
+          </span>
           <button
             type="button"
             onClick={logout}
             aria-label="Sair"
-            className="flex size-9 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-emerald-400"
+            className="ml-auto flex size-9 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-emerald-400 sm:ml-0"
           >
             <LogOut aria-hidden className="size-4" />
           </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 md:pb-10">
         <Outlet />
       </main>
+
+      {/* Phones: navigation within thumb reach at the bottom */}
+      <nav
+        aria-label="Principal"
+        className="fixed inset-x-0 bottom-0 z-10 border-t border-zinc-800 bg-zinc-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      >
+        <ul className="flex">
+          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            <li key={to} className="flex-1">
+              <NavLink
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-1 py-2.5 text-xs transition-colors',
+                    isActive ? 'text-emerald-400' : 'text-zinc-400',
+                  )
+                }
+              >
+                <Icon aria-hidden className="size-5" />
+                {label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </div>
   );
 }

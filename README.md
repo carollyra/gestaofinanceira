@@ -226,6 +226,13 @@ npm run dev            # http://localhost:5173
   usam a mesma regra com o azul de receita. A cauda é agrupada em "Outras". Todo
   gráfico tem uma visualização em tabela equivalente. No celular, receitas x despesas mostra os
   últimos 6 meses.
+- **Transações:** busca (espera a pessoa parar de digitar antes de consultar a API), período (mês,
+  intervalo personalizado ou tudo), tipo, conta e categoria (inclusive "sem categoria"), ordenação
+  por data, valor ou descrição, e paginação com totais do filtro inteiro. Todos os filtros ficam na
+  URL em português (`/transacoes?mes=2026-09&tipo=despesa&busca=mercado&pagina=2`), então a lista
+  pode ser compartilhada e sobrevive a recarregar e voltar. Tabela com cabeçalhos ordenáveis
+  (`aria-sort`) no desktop; no celular, cartões agrupados por dia, filtros recolhidos atrás de um
+  botão e navegação fixa na parte de baixo da tela.
 - **Token:** guardado no `localStorage` por simplicidade. Em produção, um cookie `httpOnly`
   reduziria a exposição a XSS, ao custo de exigir proteção contra CSRF.
 

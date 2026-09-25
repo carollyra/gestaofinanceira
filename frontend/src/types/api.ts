@@ -51,3 +51,50 @@ export interface CategoryBreakdown {
   total: number;
   categories: CategoryShare[];
 }
+
+export type AccountType =
+  'WALLET' | 'CHECKING' | 'SAVINGS' | 'CREDIT_CARD' | 'INVESTMENT' | 'OTHER';
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  initialBalance: number;
+  balance: number;
+  color: string;
+  archived: boolean;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  type: TransactionType;
+  color: string;
+  icon: string;
+  _count: { transactions: number };
+}
+
+export interface Transaction {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  date: string;
+  description: string;
+  notes: string | null;
+  recurringTransactionId: string | null;
+  account: { id: string; name: string; color: string; type: AccountType };
+  category: { id: string; name: string; color: string; icon: string } | null;
+}
+
+export interface PaginationMeta {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface TransactionList {
+  data: Transaction[];
+  meta: PaginationMeta;
+  summary: { income: number; expense: number; balance: number };
+}
