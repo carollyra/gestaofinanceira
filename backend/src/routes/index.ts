@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import { accountRoutes } from './account.routes';
 import { authRoutes } from './auth.routes';
+import { budgetRoutes } from './budget.routes';
 import { categoryRoutes } from './category.routes';
 import { dashboardRoutes } from './dashboard.routes';
 import { recurringTransactionRoutes } from './recurring-transaction.routes';
@@ -19,5 +20,6 @@ routes.use('/accounts', accountRoutes);
 routes.use('/categories', categoryRoutes);
 routes.use('/transactions', transactionRoutes);
 routes.use('/recurring-transactions', recurringTransactionRoutes);
+routes.use('/budgets', budgetRoutes);
 routes.use('/dashboard', dashboardRoutes);
 routes.use('/transfers', transferRoutes);

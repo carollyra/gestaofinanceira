@@ -224,10 +224,29 @@ async function main() {
 
   const generated = await generateDueRecurringTransactions({ userId: user.id });
 
+  // Budgets for the last 3 months, so the budget screen has history
+  const budgetLimits: [string, number][] = [
+    ['Mercado', 150_000],
+    ['Alimentação', 35_000],
+    ['Moradia', 180_000],
+    ['Transporte', 20_000],
+    ['Lazer', 25_000],
+    ['Assinaturas', 6_000],
+  ];
+  const budgets: Prisma.BudgetCreateManyInput[] = [];
+  for (let offset = 2; offset >= 0; offset--) {
+    const month = utcDate(today.getUTCFullYear(), today.getUTCMonth() - offset, 1);
+    for (const [name, amount] of budgetLimits) {
+      budgets.push({ userId: user.id, categoryId: category(name), amount, month });
+    }
+  }
+  await prisma.budget.createMany({ data: budgets });
+
   console.info(
     `Seed complete: ${user.categories.length} categories, ${user.accounts.length} accounts, ` +
       `${transactions.length + generated.created} transactions ` +
-      `(${generated.created} from ${recurring.length} recurring templates), ${transfers.length} transfers`,
+      `(${generated.created} from ${recurring.length} recurring templates), ` +
+      `${transfers.length} transfers, ${budgets.length} budgets`,
   );
   console.info(`Demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 }

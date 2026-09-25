@@ -98,6 +98,14 @@ A geração não duplica mesmo rodando várias vezes ou em paralelo:
    pelo usuário não é recriada. Ao retomar um modelo pausado, o período pausado não é preenchido
    retroativamente.
 
+### Orçamentos
+
+O gasto de cada orçamento é somado no banco com um `LEFT JOIN LATERAL` sobre as despesas da
+categoria no mês do orçamento. A listagem também traz o total orçado, o total gasto e o gasto em
+categorias sem orçamento no mês. O status é `OK` abaixo de 80% do limite, `WARNING` de 80% até o
+limite e `EXCEEDED` acima dele. A comparação é feita em centavos inteiros, e não no percentual
+arredondado: 1 centavo acima do limite já é `EXCEEDED`, mesmo que o percentual exibido seja 100%.
+
 ### Dashboard
 
 As agregações são feitas inteiramente no PostgreSQL: `SUM ... FILTER` para receitas e despesas do
