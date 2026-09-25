@@ -106,6 +106,15 @@ categorias sem orçamento no mês. O status é `OK` abaixo de 80% do limite, `WA
 limite e `EXCEEDED` acima dele. A comparação é feita em centavos inteiros, e não no percentual
 arredondado: 1 centavo acima do limite já é `EXCEEDED`, mesmo que o percentual exibido seja 100%.
 
+### Metas
+
+Cada meta retorna `progress` com percentual (pode passar de 100%), valor restante, dias até o
+prazo, valor mensal necessário (arredondado para cima, para garantir que a meta seja atingida) e
+status: `COMPLETED`, `ON_TRACK`/`BEHIND` (comparando com um plano linear da criação até o prazo),
+`OVERDUE` ou `NO_DEADLINE`. Depósitos e retiradas são um único `UPDATE` atômico
+(`current = current ± valor`) com a condição no `WHERE`: requisições simultâneas não se
+sobrescrevem e uma retirada nunca deixa a meta negativa.
+
 ### Dashboard
 
 As agregações são feitas inteiramente no PostgreSQL: `SUM ... FILTER` para receitas e despesas do

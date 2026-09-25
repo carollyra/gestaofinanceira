@@ -242,11 +242,46 @@ async function main() {
   }
   await prisma.budget.createMany({ data: budgets });
 
+  const inMonths = (months: number) =>
+    utcDate(today.getUTCFullYear(), today.getUTCMonth() + months, today.getUTCDate());
+  const goals: Prisma.GoalCreateManyInput[] = [
+    {
+      userId: user.id,
+      name: 'Reserva de emergência',
+      targetAmount: 3_000_000,
+      currentAmount: 1_850_000,
+      deadline: inMonths(10),
+      color: '#10b981',
+      icon: 'shield',
+      createdAt: inMonths(-8),
+    },
+    {
+      userId: user.id,
+      name: 'Viagem de fim de ano',
+      targetAmount: 800_000,
+      currentAmount: 220_000,
+      deadline: inMonths(3),
+      color: '#0ea5e9',
+      icon: 'plane',
+      createdAt: inMonths(-5),
+    },
+    {
+      userId: user.id,
+      name: 'Notebook novo',
+      targetAmount: 650_000,
+      currentAmount: 650_000,
+      color: '#6366f1',
+      icon: 'laptop',
+      createdAt: inMonths(-6),
+    },
+  ];
+  await prisma.goal.createMany({ data: goals });
+
   console.info(
     `Seed complete: ${user.categories.length} categories, ${user.accounts.length} accounts, ` +
       `${transactions.length + generated.created} transactions ` +
       `(${generated.created} from ${recurring.length} recurring templates), ` +
-      `${transfers.length} transfers, ${budgets.length} budgets`,
+      `${transfers.length} transfers, ${budgets.length} budgets, ${goals.length} goals`,
   );
   console.info(`Demo login: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 }
