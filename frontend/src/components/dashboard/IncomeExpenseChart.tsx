@@ -10,8 +10,8 @@ import { ChartTooltip } from './ChartTooltip';
 const axisTick = { fill: chartTheme.muted, fontSize: 12 };
 
 const INCOME_EXPENSE_SERIES = [
-  { key: 'income', name: 'Receitas', color: chartTheme.series1 },
-  { key: 'expense', name: 'Despesas', color: chartTheme.series2 },
+  { key: 'income', name: 'Receitas', color: chartTheme.income },
+  { key: 'expense', name: 'Despesas', color: chartTheme.expense },
 ] as const;
 
 export function IncomeExpenseLegend() {

@@ -124,7 +124,7 @@ export function DashboardPage() {
           ) : byCategory.data.categories.length === 0 ? (
             <EmptyState message="Nenhuma despesa neste mês." />
           ) : (
-            <CategoryBreakdownList categories={byCategory.data.categories} />
+            <CategoryBreakdownList categories={byCategory.data.categories} type="EXPENSE" />
           )}
         </ChartCard>
 

@@ -219,8 +219,11 @@ npm run dev            # http://localhost:5173
 - **Gráficos (Recharts):** paleta categórica validada para daltonismo contra a superfície escura
   (receitas e despesas usam os slots azul e laranja; verde/vermelho ficam reservados para status),
   uma única escala por gráfico, linhas de 2px, barras de no máximo 24px, rótulo só no último ponto
-  e tooltip com crosshair. Despesas por categoria usam barras horizontais ordenadas (não pizza), com
-  a cor de cada categoria num marcador ao lado do nome e a cauda agrupada em "Outras". Todo
+  e tooltip com crosshair. Despesas por categoria usam barras horizontais ordenadas (não pizza), monocromáticas na cor
+  semântica de despesa: o maior valor na cor cheia e os seguintes progressivamente mais suaves
+  (mesmo matiz, gerado em OKLCH, contraste de 4,6:1 a 2,2:1 contra o card); ponto e barra de cada
+  item têm exatamente a mesma cor, e nome, valor e percentual seguem visíveis. Listas de receitas
+  usam a mesma regra com o azul de receita. A cauda é agrupada em "Outras". Todo
   gráfico tem uma visualização em tabela equivalente. No celular, receitas x despesas mostra os
   últimos 6 meses.
 - **Token:** guardado no `localStorage` por simplicidade. Em produção, um cookie `httpOnly`

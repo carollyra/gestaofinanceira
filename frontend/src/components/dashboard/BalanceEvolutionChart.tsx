@@ -60,8 +60,8 @@ export function BalanceEvolutionChart({ data }: { data: EvolutionPoint[] }) {
         <AreaChart data={data} margin={{ top: 24, right: 8, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id="balance-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={chartTheme.series1} stopOpacity={0.16} />
-              <stop offset="100%" stopColor={chartTheme.series1} stopOpacity={0.02} />
+              <stop offset="0%" stopColor={chartTheme.income} stopOpacity={0.16} />
+              <stop offset="100%" stopColor={chartTheme.income} stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <CartesianGrid vertical={false} stroke={chartTheme.grid} />
@@ -93,7 +93,7 @@ export function BalanceEvolutionChart({ data }: { data: EvolutionPoint[] }) {
             type="monotone"
             dataKey="closingBalance"
             name="Saldo"
-            stroke={chartTheme.series1}
+            stroke={chartTheme.income}
             strokeWidth={2}
             fill="url(#balance-fill)"
             dot={false}

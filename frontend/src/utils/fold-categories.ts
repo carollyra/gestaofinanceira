@@ -1,9 +1,9 @@
 import type { CategoryShare } from '@/types/api';
 
-import { chartTheme } from './chart-theme';
+import { RANK_RAMP_SIZE } from './chart-theme';
 
-// Beyond this, the tail folds into "Outras" instead of growing the list
-export const MAX_CATEGORY_ROWS = 6;
+// Beyond this, the tail folds into "Outras": one row per step of the rank ramp
+export const MAX_CATEGORY_ROWS = RANK_RAMP_SIZE;
 
 export function foldCategories(
   categories: CategoryShare[],
@@ -19,7 +19,8 @@ export function foldCategories(
     {
       categoryId: 'others',
       name: `Outras (${tail.length})`,
-      color: chartTheme.muted,
+      // Not displayed: list colors come from the rank ramp
+      color: '',
       icon: 'ellipsis',
       total: tail.reduce((sum, c) => sum + c.total, 0),
       count: tail.reduce((sum, c) => sum + c.count, 0),
