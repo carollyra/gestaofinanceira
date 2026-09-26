@@ -10,6 +10,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   description?: string;
+  // Decides where focus goes when the dialog finishes closing. Needed when
+  // the opener is gone or about to go (a row deleted by this dialog, a dialog
+  // opened from another one). Returning nothing falls back to the opener.
+  returnFocusTo?: () => HTMLElement | null | undefined;
   children: ReactNode;
 }
 
@@ -20,7 +24,7 @@ const FOCUSABLE =
 // close it, and focus returns to the element that opened it. The panel grows
 // from that element (transform-origin at the trigger), so it reads as coming
 // from the button the user pressed.
-export function Modal({ open, onClose, title, description, children }: ModalProps) {
+export function Modal({ open, onClose, title, description, returnFocusTo, children }: ModalProps) {
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -75,7 +79,9 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
   }, [open, onClose]);
 
   const handleExitComplete = () => {
-    triggerRef.current?.focus();
+    const target =
+      returnFocusTo?.() ?? (triggerRef.current?.isConnected ? triggerRef.current : null);
+    target?.focus();
     triggerRef.current = null;
   };
 
@@ -125,7 +131,9 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
                 <X aria-hidden className="size-4" />
               </button>
             </header>
-            <div className="overflow-y-auto px-5 py-4">{children}</div>
+            <div className="overflow-y-auto px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              {children}
+            </div>
           </motion.div>
         </div>
       )}

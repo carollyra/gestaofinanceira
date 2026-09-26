@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router';
 
 import { AppRoutes } from './AppRoutes';
 import { AuthProvider } from './contexts/AuthProvider';
+import { ToastProvider } from './contexts/ToastProvider';
 import { createQueryClient } from './services/query-client';
 
 export function App() {
@@ -15,11 +16,13 @@ export function App() {
       {/* reducedMotion="user": with prefers-reduced-motion, movement (transforms,
           layout) is dropped and only opacity changes remain */}
       <MotionConfig reducedMotion="user">
-        <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          </BrowserRouter>
+        </ToastProvider>
       </MotionConfig>
     </QueryClientProvider>
   );

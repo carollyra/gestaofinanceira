@@ -5,6 +5,7 @@ import type { ReactElement } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 
 import { AuthProvider } from '@/contexts/AuthProvider';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Shows the current path and query so tests can assert redirects
 function LocationProbe() {
@@ -38,14 +39,16 @@ export function renderWithProviders(
     user: userEvent.setup(),
     ...render(
       <QueryClientProvider client={createTestQueryClient()}>
-        <MemoryRouter initialEntries={[{ pathname, search: search ? `?${search}` : '', state }]}>
-          <AuthProvider>
-            <Routes>
-              <Route path={path} element={ui} />
-            </Routes>
-            <LocationProbe />
-          </AuthProvider>
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter initialEntries={[{ pathname, search: search ? `?${search}` : '', state }]}>
+            <AuthProvider>
+              <Routes>
+                <Route path={path} element={ui} />
+              </Routes>
+              <LocationProbe />
+            </AuthProvider>
+          </MemoryRouter>
+        </ToastProvider>
       </QueryClientProvider>,
     ),
   };

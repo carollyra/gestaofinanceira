@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Repeat } from 'lucide-react';
+import { Pencil, Repeat, Trash2 } from 'lucide-react';
 
 import { CategoryIcon } from '@/components/CategoryIcon';
 import type { TransactionSortField } from '@/services/transactions.service';
@@ -12,13 +12,20 @@ import { TransactionAmount } from './TransactionAmount';
 
 interface TransactionTableProps {
   transactions: Transaction[];
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (transaction: Transaction) => void;
   sortBy: TransactionSortField;
   sortOrder: 'asc' | 'desc';
   onSort: (field: TransactionSortField, order: 'asc' | 'desc') => void;
 }
 
+const actionButton =
+  'flex size-8 items-center justify-center rounded-lg text-zinc-400 focus-visible:outline-2 focus-visible:outline-emerald-400';
+
 export function TransactionTable({
   transactions,
+  onEdit,
+  onDelete,
   sortBy,
   sortOrder,
   onSort,
@@ -39,6 +46,9 @@ export function TransactionTable({
             Conta
           </th>
           <SortableHeader field="amount" label="Valor" align="right" {...sortProps} />
+          <th scope="col" className="w-20 px-3 py-2.5">
+            <span className="sr-only">Ações</span>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -52,14 +62,20 @@ export function TransactionTable({
               animate={{ opacity: 1, y: 0, transition: { ...spring, delay: staggerDelay(index) } }}
               exit={{ opacity: 0, transition: spring }}
               transition={spring}
-              className="border-b border-zinc-800/60 last:border-0 hover:bg-zinc-800/30"
+              className="group border-b border-zinc-800/60 last:border-0 hover:bg-zinc-800/30"
             >
               <td className="px-3 py-3 whitespace-nowrap text-zinc-400 tabular-nums">
                 {formatDate(t.date)}
               </td>
               <td className="max-w-80 px-3 py-3">
                 <div className="flex items-center gap-1.5">
-                  <span className="truncate text-zinc-100">{t.description}</span>
+                  <button
+                    type="button"
+                    onClick={() => onEdit(t)}
+                    className="truncate rounded text-left text-zinc-100 hover:underline focus-visible:outline-2 focus-visible:outline-emerald-400"
+                  >
+                    {t.description}
+                  </button>
                   {t.recurringTransactionId && (
                     <Repeat
                       aria-label="Recorrente"
@@ -87,6 +103,27 @@ export function TransactionTable({
               <td className="px-3 py-3 whitespace-nowrap text-zinc-400">{t.account.name}</td>
               <td className="px-3 py-3 text-right">
                 <TransactionAmount type={t.type} amount={t.amount} />
+              </td>
+              <td className="px-3 py-3">
+                {/* Shown on row hover or keyboard focus on desktop; always reachable */}
+                <div className="flex justify-end gap-1 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(t)}
+                    aria-label={`Editar ${t.description}`}
+                    className={`${actionButton} hover:bg-zinc-800 hover:text-zinc-100`}
+                  >
+                    <Pencil aria-hidden className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(t)}
+                    aria-label={`Excluir ${t.description}`}
+                    className={`${actionButton} hover:bg-red-500/10 hover:text-red-400`}
+                  >
+                    <Trash2 aria-hidden className="size-4" />
+                  </button>
+                </div>
               </td>
             </motion.tr>
           ))}

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { ArrowDownCircle, ArrowUpCircle, PiggyBank, Scale } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, PiggyBank, Plus, Scale } from 'lucide-react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { BalanceEvolutionChart } from '@/components/dashboard/BalanceEvolutionChart';
@@ -8,6 +9,11 @@ import { ChartCard, DataTable } from '@/components/dashboard/ChartCard';
 import { IncomeExpenseChart } from '@/components/dashboard/IncomeExpenseChart';
 import { MonthPicker } from '@/components/dashboard/MonthPicker';
 import { StatCard } from '@/components/dashboard/StatCard';
+import {
+  type TransactionDialogState,
+  TransactionDialogs,
+} from '@/components/transactions/TransactionDialogs';
+import { Button } from '@/components/ui/Button';
 import { EmptyState, ErrorState } from '@/components/dashboard/states';
 import {
   BarChartSkeleton,
@@ -41,6 +47,7 @@ export function DashboardPage() {
   const evolution = useMonthlyEvolution(month);
   const byCategory = useExpensesByCategory(month);
   const nudge = useDirectionalNudge(month);
+  const [dialog, setDialog] = useState<TransactionDialogState>({ kind: 'closed' });
 
   // The month lives in the URL: shareable, and survives reloads and back/forward
   const changeMonth = (next: string) =>
@@ -62,7 +69,13 @@ export function DashboardPage() {
           <p className="text-sm text-zinc-400">Olá, {firstName}</p>
           <h1 className="text-2xl font-semibold text-zinc-50">Visão geral</h1>
         </div>
-        <MonthPicker month={month} onChange={changeMonth} />
+        <div className="flex flex-wrap items-center gap-2">
+          <MonthPicker month={month} onChange={changeMonth} />
+          <Button onClick={() => setDialog({ kind: 'create' })}>
+            <Plus aria-hidden className="size-4" />
+            Nova transação
+          </Button>
+        </div>
       </div>
 
       {/* Everything scoped by the month arrives from the side of the navigation */}
@@ -174,6 +187,8 @@ export function DashboardPage() {
           </ChartCard>
         </div>
       </motion.div>
+
+      <TransactionDialogs state={dialog} onChange={setDialog} />
     </div>
   );
 }

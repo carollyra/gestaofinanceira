@@ -1,11 +1,17 @@
 import { motion } from 'framer-motion';
-import { SearchX } from 'lucide-react';
+import { Plus, SearchX } from 'lucide-react';
+import { useRef, useState } from 'react';
 
 import { ErrorState } from '@/components/dashboard/states';
 import { TransactionCardsSkeleton, TransactionTableSkeleton } from '@/components/skeletons';
 import { TransactionCards } from '@/components/transactions/TransactionCards';
+import {
+  type TransactionDialogState,
+  TransactionDialogs,
+} from '@/components/transactions/TransactionDialogs';
 import { TransactionFilters } from '@/components/transactions/TransactionFilters';
 import { TransactionTable } from '@/components/transactions/TransactionTable';
+import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
 import { useDirectionalNudge } from '@/hooks/useDirectionalNudge';
@@ -14,6 +20,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTransactionFilters } from '@/hooks/useTransactionFilters';
 import { useTransactions } from '@/hooks/useTransactions';
 import type { TransactionSortField } from '@/services/transactions.service';
+import type { Transaction } from '@/types/api';
 import { cn } from '@/utils/cn';
 import { formatCurrency } from '@/utils/money';
 import { countActiveFilters, filtersToQuery, PAGE_SIZES } from '@/utils/transaction-filters';
@@ -35,6 +42,26 @@ export function TransactionsPage() {
   // Month navigation: the list arrives from the side of the arrow pressed
   const nudge = useDirectionalNudge(filters.period === 'month' ? filters.month : '');
 
+  const [dialog, setDialog] = useState<TransactionDialogState>({ kind: 'closed' });
+  // After closing, focus goes back to the element that opened the dialog
+  // (even after edit -> delete); if that row was just deleted, to the list
+  const opener = useRef<HTMLElement | null>(null);
+  const listRef = useRef<HTMLElement>(null);
+  const openDialog = (next: TransactionDialogState) => {
+    opener.current = document.activeElement as HTMLElement | null;
+    setDialog(next);
+  };
+  const openerDeleted = useRef(false);
+  const focusAfterDialog = () => {
+    if (openerDeleted.current) {
+      openerDeleted.current = false;
+      return listRef.current;
+    }
+    return opener.current?.isConnected ? opener.current : listRef.current;
+  };
+  const onEdit = (transaction: Transaction) => openDialog({ kind: 'edit', transaction });
+  const onDelete = (transaction: Transaction) => openDialog({ kind: 'delete', transaction });
+
   const onSort = (sortBy: TransactionSortField, sortOrder: 'asc' | 'desc') =>
     updateFilters({ sortBy, sortOrder });
   const data = transactions.data;
@@ -43,9 +70,15 @@ export function TransactionsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-50">Transações</h1>
-        <p className="text-sm text-zinc-400">Receitas e despesas de todas as contas</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-50">Transações</h1>
+          <p className="text-sm text-zinc-400">Receitas e despesas de todas as contas</p>
+        </div>
+        <Button onClick={() => openDialog({ kind: 'create' })}>
+          <Plus aria-hidden className="size-4" />
+          Nova transação
+        </Button>
       </div>
 
       <TransactionFilters
@@ -74,9 +107,11 @@ export function TransactionsPage() {
       )}
 
       <section
+        ref={listRef}
+        tabIndex={-1}
         aria-label="Lista de transações"
         aria-busy={transactions.isFetching}
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-3 outline-none"
       >
         <div className="flex items-center justify-between gap-3">
           <p aria-live="polite" className="text-sm text-zinc-400">
@@ -149,13 +184,15 @@ export function TransactionsPage() {
               <div className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900">
                 <TransactionTable
                   transactions={data.data}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
                   sortBy={filters.sortBy}
                   sortOrder={filters.sortOrder}
                   onSort={onSort}
                 />
               </div>
             ) : (
-              <TransactionCards transactions={data.data} />
+              <TransactionCards transactions={data.data} onEdit={onEdit} />
             )}
           </motion.div>
         )}
@@ -187,6 +224,16 @@ export function TransactionsPage() {
           </div>
         )}
       </section>
+
+      <TransactionDialogs
+        state={dialog}
+        onChange={setDialog}
+        defaultAccountId={filters.accountId}
+        returnFocusTo={focusAfterDialog}
+        onDeleteConfirmed={() => {
+          openerDeleted.current = true;
+        }}
+      />
     </div>
   );
 }

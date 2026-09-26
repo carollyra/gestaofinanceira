@@ -233,6 +233,13 @@ npm run dev            # http://localhost:5173
   pode ser compartilhada e sobrevive a recarregar e voltar. Tabela com cabeçalhos ordenáveis
   (`aria-sort`) no desktop; no celular, cartões agrupados por dia, filtros recolhidos atrás de um
   botão e navegação fixa na parte de baixo da tela.
+- **Formulário de transação:** criar e editar no mesmo modal (acessível: foco preso, Esc fecha,
+  foco volta a quem abriu). O campo de valor funciona como app de banco (os dígitos entram pelos
+  centavos: "1250" vira R$ 12,50) e converte para centavos inteiros ali mesmo. As categorias
+  mostradas seguem o tipo (receita/despesa). Na edição, o PATCH envia só os campos alterados, o
+  que permite corrigir uma transação antiga de uma conta arquivada. Excluir pede confirmação,
+  remove a linha na hora (atualização otimista, com colapso animado) e a devolve se a API falhar.
+  Toda mudança atualiza lista, dashboard, saldos e orçamentos (invalidação das queries).
 - **Animações (Framer Motion):** toda animação comunica origem, mudança ou hierarquia. São todas
   molas físicas sem bounce, com duração total de no máximo 350 ms, e nenhuma atrasa a leitura do
   dado (a primeira renderização mostra os valores direto). Gráficos entram uma única vez ao

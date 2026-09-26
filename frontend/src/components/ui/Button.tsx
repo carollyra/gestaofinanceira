@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/utils/cn';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'ghost';
+  variant?: 'primary' | 'ghost' | 'danger' | 'secondary';
   loading?: boolean;
 }
 
@@ -27,6 +27,8 @@ export function Button({
         'disabled:cursor-not-allowed disabled:opacity-60',
         variant === 'primary' && 'bg-emerald-500 text-zinc-950 hover:bg-emerald-400',
         variant === 'ghost' && 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100',
+        variant === 'secondary' && 'border border-zinc-700 text-zinc-200 hover:bg-zinc-800',
+        variant === 'danger' && 'bg-red-500 text-white hover:bg-red-400',
         className,
       )}
       {...props}
