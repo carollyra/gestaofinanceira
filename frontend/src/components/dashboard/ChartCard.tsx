@@ -1,7 +1,10 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { BarChart3, Table2 } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 
+import { HoverCard } from '@/components/motion/HoverCard';
 import { cn } from '@/utils/cn';
+import { spring } from '@/utils/motion';
 
 interface ChartCardProps {
   title: string;
@@ -24,14 +27,12 @@ export function ChartCard({
 }: ChartCardProps) {
   const [showTable, setShowTable] = useState(false);
   const titleId = useId();
+  const view = showTable && table ? 'table' : 'chart';
 
   return (
-    <section
+    <HoverCard
       aria-labelledby={titleId}
-      className={cn(
-        'flex flex-col gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4',
-        className,
-      )}
+      className={cn('flex flex-col gap-4 rounded-2xl border bg-zinc-900 p-4', className)}
     >
       <header className="flex items-start justify-between gap-2">
         <div>
@@ -56,10 +57,22 @@ export function ChartCard({
           </button>
         )}
       </header>
-      <div className={cn('transition-opacity', refreshing && 'opacity-60')}>
-        {showTable && table ? table : children}
+      {/* Chart and table cross-fade in the same grid cell: the same data, another view */}
+      <div className={cn('grid transition-opacity', refreshing && 'opacity-60')}>
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={view}
+            className="col-start-1 row-start-1"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={spring}
+          >
+            {view === 'table' ? table : children}
+          </motion.div>
+        </AnimatePresence>
       </div>
-    </section>
+    </HoverCard>
   );
 }
 

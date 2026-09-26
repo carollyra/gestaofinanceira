@@ -1,7 +1,10 @@
+import { motion } from 'framer-motion';
+
 import type { CategoryShare, TransactionType } from '@/types/api';
 import { rankColor } from '@/utils/chart-theme';
 import { foldCategories } from '@/utils/fold-categories';
 import { formatCurrency, formatPercent } from '@/utils/money';
+import { spring } from '@/utils/motion';
 
 interface CategoryBreakdownListProps {
   categories: CategoryShare[];
@@ -39,10 +42,14 @@ export function CategoryBreakdownList({ categories, type }: CategoryBreakdownLis
               </span>
             </div>
             <div aria-hidden className="h-2 rounded-full bg-zinc-800">
-              <div
+              {/* Fills from the left, 40ms apart; a new month animates from the old width */}
+              <motion.div
                 data-testid="rank-bar"
                 className="h-2 rounded-full"
-                style={{ width: `${(row.total / max) * 100}%`, backgroundColor: color }}
+                style={{ backgroundColor: color }}
+                initial={{ width: 0 }}
+                animate={{ width: `${(row.total / max) * 100}%` }}
+                transition={{ ...spring, delay: rank * 0.04 }}
               />
             </div>
           </li>

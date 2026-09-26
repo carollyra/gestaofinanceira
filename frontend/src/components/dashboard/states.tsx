@@ -1,11 +1,5 @@
 import { CircleAlert, Inbox, RotateCw } from 'lucide-react';
 
-import { cn } from '@/utils/cn';
-
-export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn('animate-pulse rounded-lg bg-zinc-800/70', className)} />;
-}
-
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div

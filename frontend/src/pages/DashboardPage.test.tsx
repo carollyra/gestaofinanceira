@@ -71,20 +71,33 @@ describe('DashboardPage', () => {
     mockDashboardApi();
     renderWithProviders(<DashboardPage />, { route: '/?mes=2026-03' });
 
-    const cards = within(await screen.findByRole('region', { name: 'Resumo do mês' }));
+    const card = async (name: string) =>
+      normalize((await screen.findByRole('region', { name })).textContent);
 
-    expect(
-      normalize(cards.getByText('Saldo total').closest('div')!.parentElement!.textContent),
-    ).toContain('R$ 8.030,00');
-    expect(normalize((await cards.findByText('R$ 3.450,00')).textContent)).toBe('R$ 3.450,00');
+    expect(await card('Saldo total')).toContain('R$ 8.030,00');
+    expect(await card('Receitas do mês')).toContain('R$ 3.450,00');
     // Income +15% (good), expense +1650% (bad): direction is spoken, not only colored
-    expect(cards.getByText('Receitas do mês').closest('div')!.parentElement).toHaveTextContent(
-      'Aumento de15%',
+    expect(await card('Receitas do mês')).toContain('Aumento de15%');
+    expect(await card('Despesas do mês')).toContain('Aumento de1.650%');
+    expect(await card('Resultado do mês')).toContain('39,1% das receitas guardados');
+  });
+
+  it('shows skeletons shaped like the content while loading', async () => {
+    localStorage.setItem('financas:token', 'token');
+    // Dashboard requests never resolve: the page stays in its loading state
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) =>
+        String(input).endsWith('/auth/me')
+          ? Promise.resolve(new Response(JSON.stringify({ user: fakeUser }), { status: 200 }))
+          : new Promise(() => {}),
+      ),
     );
-    expect(cards.getByText('Despesas do mês').closest('div')!.parentElement).toHaveTextContent(
-      'Aumento de1.650%',
-    );
-    expect(cards.getByText('39,1% das receitas guardados')).toBeInTheDocument();
+    renderWithProviders(<DashboardPage />, { route: '/?mes=2026-03' });
+
+    expect(await screen.findAllByRole('status', { name: 'Carregando resumo' })).toHaveLength(4);
+    expect(screen.getAllByRole('status', { name: 'Carregando gráfico' })).toHaveLength(2);
+    expect(screen.getByRole('status', { name: 'Carregando categorias' })).toBeInTheDocument();
   });
 
   it('requests every block for the month in the URL and navigates months', async () => {

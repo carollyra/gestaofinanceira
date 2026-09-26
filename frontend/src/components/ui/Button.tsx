@@ -2,8 +2,6 @@ import type { ButtonHTMLAttributes } from 'react';
 
 import { cn } from '@/utils/cn';
 
-import { Spinner } from './Spinner';
-
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'ghost';
   loading?: boolean;
@@ -33,7 +31,18 @@ export function Button({
       )}
       {...props}
     >
-      {loading && <Spinner className="size-4" label="Enviando" />}
+      {loading && (
+        <span role="status" aria-label="Enviando" className="flex gap-0.5">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              aria-hidden
+              className="size-1.5 rounded-full bg-current motion-safe:animate-pulse"
+              style={{ animationDelay: `${i * 150}ms` }}
+            />
+          ))}
+        </span>
+      )}
       {children}
     </button>
   );

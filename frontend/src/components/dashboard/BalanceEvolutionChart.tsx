@@ -8,10 +8,13 @@ import {
   YAxis,
 } from 'recharts';
 
+import { LineChartSkeleton } from '@/components/skeletons';
+import { useChartEntrance } from '@/hooks/useChartEntrance';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { EvolutionPoint } from '@/types/api';
 import { chartTheme } from '@/utils/chart-theme';
 import { formatCompactCurrency, formatCurrency } from '@/utils/money';
+import { CHART_ANIMATION_MS, springEasing } from '@/utils/motion';
 import { alternateMonthTicks, formatMonthLong, formatMonthShort } from '@/utils/month';
 
 import { ChartTooltip } from './ChartTooltip';
@@ -46,6 +49,7 @@ function EndLabel(props: {
 export function BalanceEvolutionChart({ data }: { data: EvolutionPoint[] }) {
   // Phones fit fewer month labels: one every 3 months keeps the spacing even
   const tickStep = useMediaQuery('(min-width: 640px)') ? 2 : 3;
+  const { ref: entranceRef, visible, animate } = useChartEntrance<HTMLDivElement>();
   const first = data[0];
   const last = data[data.length - 1];
   const description =
@@ -55,54 +59,61 @@ export function BalanceEvolutionChart({ data }: { data: EvolutionPoint[] }) {
       : 'Sem dados';
 
   return (
-    <div role="img" aria-label={description} className="h-64 w-full">
-      <ResponsiveContainer>
-        <AreaChart data={data} margin={{ top: 24, right: 8, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="balance-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={chartTheme.income} stopOpacity={0.16} />
-              <stop offset="100%" stopColor={chartTheme.income} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid vertical={false} stroke={chartTheme.grid} />
-          <XAxis
-            dataKey="month"
-            tickFormatter={formatMonthShort}
-            tick={axisTick}
-            axisLine={{ stroke: chartTheme.axis }}
-            tickLine={false}
-            ticks={alternateMonthTicks(
-              data.map((point) => point.month),
-              tickStep,
-            )}
-            interval="preserveEnd"
-          />
-          <YAxis
-            tickFormatter={formatCompactCurrency}
-            tick={axisTick}
-            axisLine={false}
-            tickLine={false}
-            width={76}
-            className="tabular-nums"
-          />
-          <Tooltip
-            content={<ChartTooltip />}
-            cursor={{ stroke: chartTheme.muted, strokeWidth: 1 }}
-          />
-          <Area
-            type="monotone"
-            dataKey="closingBalance"
-            name="Saldo"
-            stroke={chartTheme.income}
-            strokeWidth={2}
-            fill="url(#balance-fill)"
-            dot={false}
-            activeDot={{ r: 5, stroke: chartTheme.surface, strokeWidth: 2 }}
-            label={<EndLabel count={data.length} />}
-            isAnimationActive={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+    <div ref={entranceRef} role="img" aria-label={description} className="h-64 w-full">
+      {!visible ? (
+        <LineChartSkeleton />
+      ) : (
+        <ResponsiveContainer>
+          <AreaChart data={data} margin={{ top: 24, right: 8, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id="balance-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={chartTheme.income} stopOpacity={0.16} />
+                <stop offset="100%" stopColor={chartTheme.income} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid vertical={false} stroke={chartTheme.grid} />
+            <XAxis
+              dataKey="month"
+              tickFormatter={formatMonthShort}
+              tick={axisTick}
+              axisLine={{ stroke: chartTheme.axis }}
+              tickLine={false}
+              ticks={alternateMonthTicks(
+                data.map((point) => point.month),
+                tickStep,
+              )}
+              interval="preserveEnd"
+            />
+            <YAxis
+              tickFormatter={formatCompactCurrency}
+              tick={axisTick}
+              axisLine={false}
+              tickLine={false}
+              width={76}
+              className="tabular-nums"
+            />
+            <Tooltip
+              content={<ChartTooltip />}
+              cursor={{ stroke: chartTheme.muted, strokeWidth: 1 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="closingBalance"
+              name="Saldo"
+              stroke={chartTheme.income}
+              strokeWidth={2}
+              fill="url(#balance-fill)"
+              dot={false}
+              activeDot={{ r: 5, stroke: chartTheme.surface, strokeWidth: 2 }}
+              label={<EndLabel count={data.length} />}
+              // Recharts reveals the area left to right; the easing is a physical spring
+              isAnimationActive={animate}
+              animationDuration={CHART_ANIMATION_MS}
+              animationEasing={springEasing}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

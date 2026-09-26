@@ -1,11 +1,14 @@
+import { motion } from 'framer-motion';
 import { SearchX } from 'lucide-react';
 
-import { ErrorState, Skeleton } from '@/components/dashboard/states';
+import { ErrorState } from '@/components/dashboard/states';
+import { TransactionCardsSkeleton, TransactionTableSkeleton } from '@/components/skeletons';
 import { TransactionCards } from '@/components/transactions/TransactionCards';
 import { TransactionFilters } from '@/components/transactions/TransactionFilters';
 import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
+import { useDirectionalNudge } from '@/hooks/useDirectionalNudge';
 import { useAccounts, useCategories } from '@/hooks/useLookups';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useTransactionFilters } from '@/hooks/useTransactionFilters';
@@ -29,6 +32,8 @@ export function TransactionsPage() {
   const accounts = useAccounts(true);
   const categories = useCategories();
   const isWide = useMediaQuery('(min-width: 768px)');
+  // Month navigation: the list arrives from the side of the arrow pressed
+  const nudge = useDirectionalNudge(filters.period === 'month' ? filters.month : '');
 
   const onSort = (sortBy: TransactionSortField, sortOrder: 'asc' | 'desc') =>
     updateFilters({ sortBy, sortOrder });
@@ -104,11 +109,11 @@ export function TransactionsPage() {
         </div>
 
         {transactions.isPending ? (
-          <div className="flex flex-col gap-2">
-            {Array.from({ length: 6 }, (_, i) => (
-              <Skeleton key={i} className="h-14" />
-            ))}
-          </div>
+          isWide ? (
+            <TransactionTableSkeleton />
+          ) : (
+            <TransactionCardsSkeleton />
+          )
         ) : transactions.isError ? (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900">
             <ErrorState
@@ -136,7 +141,10 @@ export function TransactionsPage() {
           </div>
         ) : (
           // Previous page stays on screen, dimmed, while the next one loads
-          <div className={cn('transition-opacity', transactions.isPlaceholderData && 'opacity-60')}>
+          <motion.div
+            animate={nudge}
+            className={cn('transition-opacity', transactions.isPlaceholderData && 'opacity-60')}
+          >
             {isWide ? (
               <div className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900">
                 <TransactionTable
@@ -149,7 +157,7 @@ export function TransactionsPage() {
             ) : (
               <TransactionCards transactions={data.data} />
             )}
-          </div>
+          </motion.div>
         )}
 
         {data && data.meta.total > 0 && (

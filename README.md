@@ -233,6 +233,17 @@ npm run dev            # http://localhost:5173
   pode ser compartilhada e sobrevive a recarregar e voltar. Tabela com cabeçalhos ordenáveis
   (`aria-sort`) no desktop; no celular, cartões agrupados por dia, filtros recolhidos atrás de um
   botão e navegação fixa na parte de baixo da tela.
+- **Animações (Framer Motion):** toda animação comunica origem, mudança ou hierarquia. São todas
+  molas físicas sem bounce, com duração total de no máximo 350 ms, e nenhuma atrasa a leitura do
+  dado (a primeira renderização mostra os valores direto). Gráficos entram uma única vez ao
+  aparecer na tela (linha revelada da esquerda para a direita, barras crescendo da base, receitas e
+  depois despesas); a curva do Recharts é a de uma mola criticamente amortecida. Valores dos cards
+  contam do anterior para o novo quando o mês muda; o conteúdo chega do lado da seta clicada;
+  barras de categoria preenchem com 40 ms entre itens; linhas da lista entram em cascata e, ao
+  reordenar ou sair, as demais deslizam para o novo lugar (layout animation); gráfico e tabela
+  trocam em crossfade; cards elevam no hover; modais crescem a partir do botão que os abriu.
+  Carregamentos usam skeletons com a forma do conteúdo, sem spinners. Com
+  `prefers-reduced-motion`, deslocamentos e contagens são removidos e só a opacidade muda.
 - **Token:** guardado no `localStorage` por simplicidade. Em produção, um cookie `httpOnly`
   reduziria a exposição a XSS, ao custo de exigir proteção contra CSRF.
 

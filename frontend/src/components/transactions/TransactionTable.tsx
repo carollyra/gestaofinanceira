@@ -1,9 +1,11 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { Repeat } from 'lucide-react';
 
 import { CategoryIcon } from '@/components/CategoryIcon';
 import type { TransactionSortField } from '@/services/transactions.service';
 import type { Transaction } from '@/types/api';
 import { formatDate } from '@/utils/date';
+import { spring, staggerDelay } from '@/utils/motion';
 
 import { SortableHeader } from './SortableHeader';
 import { TransactionAmount } from './TransactionAmount';
@@ -40,44 +42,55 @@ export function TransactionTable({
         </tr>
       </thead>
       <tbody>
-        {transactions.map((t) => (
-          <tr key={t.id} className="border-b border-zinc-800/60 last:border-0 hover:bg-zinc-800/30">
-            <td className="px-3 py-3 whitespace-nowrap text-zinc-400 tabular-nums">
-              {formatDate(t.date)}
-            </td>
-            <td className="max-w-80 px-3 py-3">
-              <div className="flex items-center gap-1.5">
-                <span className="truncate text-zinc-100">{t.description}</span>
-                {t.recurringTransactionId && (
-                  <Repeat
-                    aria-label="Recorrente"
-                    role="img"
-                    className="size-3.5 shrink-0 text-zinc-500"
-                  />
+        {/* Rows cascade in; on reorder or removal the others glide to their new place */}
+        <AnimatePresence initial={false} mode="popLayout">
+          {transactions.map((t, index) => (
+            <motion.tr
+              key={t.id}
+              layout="position"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0, transition: { ...spring, delay: staggerDelay(index) } }}
+              exit={{ opacity: 0, transition: spring }}
+              transition={spring}
+              className="border-b border-zinc-800/60 last:border-0 hover:bg-zinc-800/30"
+            >
+              <td className="px-3 py-3 whitespace-nowrap text-zinc-400 tabular-nums">
+                {formatDate(t.date)}
+              </td>
+              <td className="max-w-80 px-3 py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="truncate text-zinc-100">{t.description}</span>
+                  {t.recurringTransactionId && (
+                    <Repeat
+                      aria-label="Recorrente"
+                      role="img"
+                      className="size-3.5 shrink-0 text-zinc-500"
+                    />
+                  )}
+                </div>
+                {t.notes && <p className="truncate text-xs text-zinc-500">{t.notes}</p>}
+              </td>
+              <td className="px-3 py-3">
+                {t.category ? (
+                  <span className="flex items-center gap-2 text-zinc-300">
+                    <CategoryIcon
+                      icon={t.category.icon}
+                      color={t.category.color}
+                      className="size-7"
+                    />
+                    {t.category.name}
+                  </span>
+                ) : (
+                  <span className="text-zinc-500">Sem categoria</span>
                 )}
-              </div>
-              {t.notes && <p className="truncate text-xs text-zinc-500">{t.notes}</p>}
-            </td>
-            <td className="px-3 py-3">
-              {t.category ? (
-                <span className="flex items-center gap-2 text-zinc-300">
-                  <CategoryIcon
-                    icon={t.category.icon}
-                    color={t.category.color}
-                    className="size-7"
-                  />
-                  {t.category.name}
-                </span>
-              ) : (
-                <span className="text-zinc-500">Sem categoria</span>
-              )}
-            </td>
-            <td className="px-3 py-3 whitespace-nowrap text-zinc-400">{t.account.name}</td>
-            <td className="px-3 py-3 text-right">
-              <TransactionAmount type={t.type} amount={t.amount} />
-            </td>
-          </tr>
-        ))}
+              </td>
+              <td className="px-3 py-3 whitespace-nowrap text-zinc-400">{t.account.name}</td>
+              <td className="px-3 py-3 text-right">
+                <TransactionAmount type={t.type} amount={t.amount} />
+              </td>
+            </motion.tr>
+          ))}
+        </AnimatePresence>
       </tbody>
     </table>
   );

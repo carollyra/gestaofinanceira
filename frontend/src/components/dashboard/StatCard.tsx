@@ -1,6 +1,8 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { AnimatedNumber } from '@/components/motion/AnimatedNumber';
+import { HoverCard } from '@/components/motion/HoverCard';
 import { chartTheme } from '@/utils/chart-theme';
 import { formatPercent } from '@/utils/money';
 
@@ -13,7 +15,9 @@ interface Delta {
 
 interface StatCardProps {
   label: string;
-  value: string;
+  // Integer cents; animates from the previous value when it changes
+  value: number;
+  format: (value: number) => string;
   icon: ReactNode;
   delta?: Delta;
   footnote?: string;
@@ -47,16 +51,23 @@ function DeltaBadge({ current, previous, upIsGood }: Delta) {
   );
 }
 
-export function StatCard({ label, value, icon, delta, footnote }: StatCardProps) {
+export function StatCard({ label, value, format, icon, delta, footnote }: StatCardProps) {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+    <HoverCard
+      aria-label={label}
+      className="flex flex-col gap-2 rounded-2xl border bg-zinc-900 p-4"
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-zinc-400">{label}</p>
         <span className="text-zinc-500">{icon}</span>
       </div>
-      <p className="text-2xl font-semibold text-zinc-50">{value}</p>
+      <AnimatedNumber
+        value={value}
+        format={format}
+        className="text-2xl font-semibold text-zinc-50"
+      />
       {delta && <DeltaBadge {...delta} />}
       {footnote && <p className="text-xs text-zinc-500">{footnote}</p>}
-    </div>
+    </HoverCard>
   );
 }

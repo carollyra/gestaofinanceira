@@ -23,6 +23,7 @@ export default defineConfig({
       'react-router',
       '@tanstack/react-query',
       'recharts',
+      'framer-motion',
       'lucide-react',
       'react-hook-form',
       '@hookform/resolvers/zod',
