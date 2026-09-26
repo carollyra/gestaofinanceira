@@ -7,7 +7,9 @@ import { goalHint } from '@/utils/goal-hint';
 
 import { GoalsPage } from './GoalsPage';
 
-function goal(overrides: Omit<Partial<Goal>, 'progress'> & { progress?: Partial<Goal['progress']> }): Goal {
+function goal(
+  overrides: Omit<Partial<Goal>, 'progress'> & { progress?: Partial<Goal['progress']> },
+): Goal {
   return {
     id: 'g1',
     name: 'Viagem',
