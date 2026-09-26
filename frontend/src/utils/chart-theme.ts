@@ -30,6 +30,17 @@ export const chartTheme = {
   bad: '#f87171',
 } as const;
 
+// Status palette (reserved meaning, never used for series): always shown with
+// an icon and a label, never color alone. Text uses lighter steps for contrast.
+export const statusTheme = {
+  good: { fill: '#0ca30c', text: '#34d399' },
+  warning: { fill: '#fab219', text: '#fcd34d' },
+  critical: { fill: '#d03b3b', text: '#f87171' },
+  neutral: { fill: '#71717a', text: '#a1a1aa' },
+} as const;
+
+export type StatusTone = keyof typeof statusTheme;
+
 export const RANK_RAMP_SIZE = EXPENSE_RAMP.length;
 
 // Color of the item at `rank` (0 = largest) in a ranked list of incomes or expenses

@@ -1,0 +1,38 @@
+// Identity colors the user can pick for accounts, categories and goals
+export const IDENTITY_COLORS = [
+  '#10b981',
+  '#14b8a6',
+  '#06b6d4',
+  '#0ea5e9',
+  '#3b82f6',
+  '#6366f1',
+  '#8b5cf6',
+  '#a855f7',
+  '#d946ef',
+  '#ec4899',
+  '#ef4444',
+  '#f97316',
+  '#f59e0b',
+  '#84cc16',
+  '#22c55e',
+  '#64748b',
+] as const;
+
+export const COLOR_NAMES: Record<string, string> = {
+  '#10b981': 'Esmeralda',
+  '#14b8a6': 'Verde-água',
+  '#06b6d4': 'Ciano',
+  '#0ea5e9': 'Azul-céu',
+  '#3b82f6': 'Azul',
+  '#6366f1': 'Índigo',
+  '#8b5cf6': 'Violeta',
+  '#a855f7': 'Roxo',
+  '#d946ef': 'Fúcsia',
+  '#ec4899': 'Rosa',
+  '#ef4444': 'Vermelho',
+  '#f97316': 'Laranja',
+  '#f59e0b': 'Âmbar',
+  '#84cc16': 'Lima',
+  '#22c55e': 'Verde',
+  '#64748b': 'Cinza',
+};

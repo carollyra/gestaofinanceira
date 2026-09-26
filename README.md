@@ -240,6 +240,13 @@ npm run dev            # http://localhost:5173
   que permite corrigir uma transação antiga de uma conta arquivada. Excluir pede confirmação,
   remove a linha na hora (atualização otimista, com colapso animado) e a devolve se a API falhar.
   Toda mudança atualiza lista, dashboard, saldos e orçamentos (invalidação das queries).
+- **Contas, categorias, orçamentos e metas:** telas completas de cadastro. Contas com saldo atual,
+  saldo inicial negativo (fatura em aberto), arquivar/desarquivar e transferência entre contas.
+  Categorias em abas (despesas/receitas) com seletor de cor e ícone; o tipo é imutável e, ao
+  excluir, as transações podem ir para outra categoria do mesmo tipo. Orçamentos por mês (na URL)
+  com consumo, status com ícone + rótulo (paleta de status reservada) e cópia do mês anterior.
+  Metas com progresso, prazo, "guarde R$ X por mês" e depósito/retirada. No celular, a barra
+  inferior tem os quatro destinos mais usados e o restante fica em "Mais".
 - **Animações (Framer Motion):** toda animação comunica origem, mudança ou hierarquia. São todas
   molas físicas sem bounce, com duração total de no máximo 350 ms, e nenhuma atrasa a leitura do
   dado (a primeira renderização mostra os valores direto). Gráficos entram uma única vez ao
