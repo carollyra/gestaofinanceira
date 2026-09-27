@@ -247,6 +247,13 @@ npm run dev            # http://localhost:5173
   com consumo, status com ícone + rótulo (paleta de status reservada) e cópia do mês anterior.
   Metas com progresso, prazo, "guarde R$ X por mês" e depósito/retirada. No celular, a barra
   inferior tem os quatro destinos mais usados e o restante fica em "Mais".
+- **Importação de CSV:** fluxo em três etapas (arquivo → revisão → concluído). Na revisão, linhas
+  válidas vêm marcadas; duplicatas exatas e possíveis vêm desmarcadas com o motivo ("já
+  registrada: Salário em 05/09"); linhas com erro ou ignoradas aparecem, mas não podem ser
+  marcadas. A categoria sugerida mostra a origem (arquivo, histórico ou palavra-chave) e pode ser
+  trocada por linha ou em lote (só nas linhas do mesmo tipo). Se o servidor não reconhecer as
+  colunas, aparece um mapeamento manual com nomes sugeridos a partir das primeiras linhas do
+  arquivo. Arquivos grandes são paginados na revisão.
 - **Animações (Framer Motion):** toda animação comunica origem, mudança ou hierarquia. São todas
   molas físicas sem bounce, com duração total de no máximo 350 ms, e nenhuma atrasa a leitura do
   dado (a primeira renderização mostra os valores direto). Gráficos entram uma única vez ao

@@ -1,5 +1,12 @@
 import { fakeUser, mockApi } from './render';
 
+// JSON bodies are parsed; multipart uploads stay as FormData
+function parseBody(body: BodyInit | null | undefined): unknown {
+  if (!body) return undefined;
+  if (body instanceof FormData) return body;
+  return JSON.parse(String(body));
+}
+
 type Route = (ctx: {
   url: URL;
   method: string;
@@ -13,7 +20,7 @@ export function fakeApi(...routes: Route[]) {
   const fetchMock = mockApi((rawUrl, init) => {
     const url = new URL(rawUrl);
     const method = init.method ?? 'GET';
-    const body = init.body ? JSON.parse(String(init.body)) : undefined;
+    const body = parseBody(init.body);
     if (url.pathname.endsWith('/auth/me')) return { status: 200, body: { user: fakeUser } };
     for (const route of routes) {
       const response = route({ url, method, body });
@@ -30,7 +37,7 @@ export function fakeApi(...routes: Route[]) {
         )
         .map(([u, init]) => ({
           url: new URL(String(u)),
-          body: init?.body ? JSON.parse(String(init.body)) : undefined,
+          body: parseBody(init?.body),
         })),
   };
 }

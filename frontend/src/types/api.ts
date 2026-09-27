@@ -156,3 +156,58 @@ export interface GoalList {
     percentage: number;
   };
 }
+
+export type SuggestionSource = 'CSV' | 'HISTORY' | 'KEYWORD';
+
+export interface ImportPreviewRow {
+  rowNumber: number;
+  status: 'VALID' | 'INVALID' | 'IGNORED';
+  errors: string[];
+  date: string | null;
+  description: string;
+  amount: number | null;
+  type: TransactionType | null;
+  notes: string | null;
+  category: {
+    id: string;
+    name: string;
+    color: string;
+    icon: string;
+    source: SuggestionSource;
+  } | null;
+  duplicate: {
+    status: 'EXACT' | 'POSSIBLE';
+    transactionId: string;
+    date: string;
+    description: string;
+  } | null;
+}
+
+export interface ImportPreview {
+  detected: {
+    encoding: string;
+    delimiter: string;
+    headers: string[];
+    mapping: Record<string, string>;
+  };
+  summary: {
+    total: number;
+    valid: number;
+    invalid: number;
+    ignored: number;
+    duplicates: number;
+    possibleDuplicates: number;
+    categorized: number;
+    income: number;
+    expense: number;
+  };
+  rows: ImportPreviewRow[];
+}
+
+export interface ColumnMapping {
+  date: string;
+  description: string;
+  amount?: string;
+  credit?: string;
+  debit?: string;
+}

@@ -8,6 +8,7 @@ import { BudgetsPage } from '@/pages/BudgetsPage';
 import { CategoriesPage } from '@/pages/CategoriesPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { GoalsPage } from '@/pages/GoalsPage';
+import { ImportPage } from '@/pages/ImportPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RegisterPage } from '@/pages/RegisterPage';
@@ -29,6 +30,7 @@ export function AppRoutes() {
           <Route path="/metas" element={<GoalsPage />} />
           <Route path="/contas" element={<AccountsPage />} />
           <Route path="/categorias" element={<CategoriesPage />} />
+          <Route path="/importar" element={<ImportPage />} />
         </Route>
       </Route>
 

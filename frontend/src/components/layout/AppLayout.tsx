@@ -7,6 +7,7 @@ import {
   PiggyBank,
   Tags,
   Target,
+  Upload,
   Wallet,
   WalletCards,
 } from 'lucide-react';
@@ -35,7 +36,10 @@ const NAV_ITEMS: NavItem[] = [
 
 // Phones: the four most used destinations in the bottom bar, the rest under "Mais"
 const MOBILE_PRIMARY = NAV_ITEMS.slice(0, 4);
-const MOBILE_MORE = NAV_ITEMS.slice(4);
+const MOBILE_MORE: NavItem[] = [
+  ...NAV_ITEMS.slice(4),
+  { to: '/importar', label: 'Importar extrato', icon: Upload },
+];
 
 export function AppLayout() {
   const { user, logout } = useAuth();

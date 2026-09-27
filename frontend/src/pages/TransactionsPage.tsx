@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Plus, SearchX } from 'lucide-react';
+import { Plus, SearchX, Upload } from 'lucide-react';
+import { Link } from 'react-router';
 import { useRef, useState } from 'react';
 
 import { ErrorState } from '@/components/dashboard/states';
@@ -75,10 +76,19 @@ export function TransactionsPage() {
           <h1 className="text-2xl font-semibold text-zinc-50">Transações</h1>
           <p className="text-sm text-zinc-400">Receitas e despesas de todas as contas</p>
         </div>
-        <Button onClick={() => openDialog({ kind: 'create' })}>
-          <Plus aria-hidden className="size-4" />
-          Nova transação
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/importar"
+            className="inline-flex h-11 items-center gap-2 rounded-lg border border-zinc-700 px-4 text-sm font-medium text-zinc-200 transition-colors hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+          >
+            <Upload aria-hidden className="size-4" />
+            Importar CSV
+          </Link>
+          <Button onClick={() => openDialog({ kind: 'create' })}>
+            <Plus aria-hidden className="size-4" />
+            Nova transação
+          </Button>
+        </div>
       </div>
 
       <TransactionFilters
