@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { AnimatedNumber } from '@/components/motion/AnimatedNumber';
 import { HoverCard } from '@/components/motion/HoverCard';
 import { chartTheme } from '@/utils/chart-theme';
+import { cn } from '@/utils/cn';
 import { formatPercent } from '@/utils/money';
 
 interface Delta {
@@ -21,6 +22,9 @@ interface StatCardProps {
   icon: ReactNode;
   delta?: Delta;
   footnote?: string;
+  // The one number the page leads with: larger, spans more room
+  hero?: boolean;
+  className?: string;
 }
 
 function DeltaBadge({ current, previous, upIsGood }: Delta) {
@@ -51,11 +55,32 @@ function DeltaBadge({ current, previous, upIsGood }: Delta) {
   );
 }
 
-export function StatCard({ label, value, format, icon, delta, footnote }: StatCardProps) {
+export function StatCard({
+  label,
+  value,
+  format,
+  icon,
+  delta,
+  footnote,
+  hero,
+  className,
+}: StatCardProps) {
   return (
     <HoverCard
       aria-label={label}
-      className="flex flex-col gap-2 rounded-2xl border bg-zinc-900 p-4"
+      className={cn(
+        'flex flex-col gap-2 rounded-2xl border bg-zinc-900 p-4',
+        hero && 'justify-between p-5',
+        className,
+      )}
+      // Inline, because HoverCard sets its own background image
+      style={
+        hero
+          ? {
+              backgroundImage: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), transparent 55%)',
+            }
+          : undefined
+      }
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-zinc-400">{label}</p>
@@ -64,7 +89,8 @@ export function StatCard({ label, value, format, icon, delta, footnote }: StatCa
       <AnimatedNumber
         value={value}
         format={format}
-        className="text-2xl font-semibold text-zinc-50"
+        // Hero figure: same sans as the rest, proportional digits (not tabular)
+        className={cn('font-semibold text-zinc-50', hero ? 'text-4xl sm:text-5xl' : 'text-2xl')}
       />
       {delta && <DeltaBadge {...delta} />}
       {footnote && <p className="text-xs text-zinc-500">{footnote}</p>}

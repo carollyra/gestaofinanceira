@@ -35,6 +35,8 @@ import { formatCurrency, formatPercent } from '@/utils/money';
 import { currentMonth, formatMonthLong, formatMonthShort, isValidMonth } from '@/utils/month';
 
 const LOAD_ERROR = 'Não foi possível carregar estes dados.';
+// Grid placement of the summary cards (and their skeletons), in order
+const SUMMARY_SLOTS = ['col-span-2', undefined, undefined, 'col-span-2 lg:col-span-1'];
 const formatSignedCurrency = (cents: number) => formatCurrency(cents, { signed: true });
 
 export function DashboardPage() {
@@ -82,10 +84,15 @@ export function DashboardPage() {
       <motion.div animate={nudge} className="flex flex-col gap-6">
         <section
           aria-label="Resumo do mês"
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          // Phones: balance and result full width, income and expense side by side
+          className="grid grid-cols-2 gap-3 lg:grid-cols-5"
         >
           {summary.isPending ? (
-            Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)
+            Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className={SUMMARY_SLOTS[i]}>
+                <StatCardSkeleton />
+              </div>
+            ))
           ) : summary.isError ? (
             <div className="col-span-full rounded-2xl border border-zinc-800 bg-zinc-900">
               <ErrorState message={LOAD_ERROR} onRetry={() => void summary.refetch()} />
@@ -199,6 +206,8 @@ function SummaryCards({ data, refreshing }: { data: DashboardSummary; refreshing
   return (
     <div className={cn('contents', refreshing && '[&>*]:opacity-60')}>
       <StatCard
+        hero
+        className="col-span-2"
         label="Saldo total"
         value={data.totalBalance}
         format={formatCurrency}
@@ -220,6 +229,7 @@ function SummaryCards({ data, refreshing }: { data: DashboardSummary; refreshing
         delta={{ current: data.expense, previous: data.previousMonth.expense, upIsGood: false }}
       />
       <StatCard
+        className="col-span-2 lg:col-span-1"
         label="Resultado do mês"
         value={data.net}
         format={formatSignedCurrency}

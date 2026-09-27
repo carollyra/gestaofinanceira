@@ -3,17 +3,31 @@
 Aplicação full stack para controle de finanças pessoais: contas, categorias, transações,
 recorrências, orçamentos, metas de economia, importação de CSV e dashboard com gráficos.
 
-> Projeto em desenvolvimento.
+![Dashboard](docs/screenshots/dashboard.png)
+
+<p align="center">
+  <img src="docs/screenshots/mobile-dashboard.png" alt="Dashboard no celular" width="260" />
+  &nbsp;
+  <img src="docs/screenshots/mobile-transactions.png" alt="Transações no celular" width="260" />
+</p>
+
+| Login                                       | Transações                                       |
+| ------------------------------------------- | ------------------------------------------------ |
+| ![Login](docs/screenshots/login.png)        | ![Transações](docs/screenshots/transactions.png) |
+| **Orçamentos**                              | **Metas**                                        |
+| ![Orçamentos](docs/screenshots/budgets.png) | ![Metas](docs/screenshots/goals.png)             |
+
+![Revisão da importação de CSV](docs/screenshots/import-review.png)
 
 ## Stack
 
-| Camada   | Tecnologias                                     |
-| -------- | ----------------------------------------------- |
-| Frontend | React, TypeScript, Vite, Tailwind CSS, Recharts |
-| Backend  | Node.js, TypeScript, Express, Zod, JWT, bcrypt  |
-| Banco    | PostgreSQL (Neon) com Prisma ORM                |
-| Testes   | Vitest, Supertest, Testing Library              |
-| Tooling  | ESLint, Prettier                                |
+| Camada   | Tecnologias                                                                                     |
+| -------- | ----------------------------------------------------------------------------------------------- |
+| Frontend | React, TypeScript, Vite, Tailwind CSS, Recharts, Framer Motion, TanStack Query, React Hook Form |
+| Backend  | Node.js, TypeScript, Express, Zod, JWT, bcrypt                                                  |
+| Banco    | PostgreSQL (Neon) com Prisma ORM                                                                |
+| Testes   | Vitest, Supertest, Testing Library                                                              |
+| Tooling  | ESLint, Prettier                                                                                |
 
 ## Decisões técnicas
 
@@ -267,6 +281,26 @@ npm run dev            # http://localhost:5173
   `prefers-reduced-motion`, deslocamentos e contagens são removidos e só a opacidade muda.
 - **Token:** guardado no `localStorage` por simplicidade. Em produção, um cookie `httpOnly`
   reduziria a exposição a XSS, ao custo de exigir proteção contra CSRF.
+
+## Design
+
+- **Visual escuro** em camadas: página quase preta com um brilho sutil da cor da marca no topo, cards
+  com um realce de 1px na borda superior para dar profundidade sem bordas extras.
+- **Tipografia:** Bricolage Grotesque nos títulos (grotesca com personalidade, com ajuste óptico
+  por tamanho) e Geist na interface e nos números (algarismos tabulares onde valores se alinham).
+  As duas são servidas pelo próprio app (Fontsource), sem chamadas a terceiros.
+- **Hierarquia:** um único número de destaque por tela (o saldo total no dashboard), na mesma fonte
+  da interface; títulos na fonte de display.
+- **Cores com significado:** azul para receita e laranja para despesa em todo o app (validadas para
+  daltonismo contra a superfície dos cards); verde/âmbar/vermelho reservados para status, sempre com
+  ícone e rótulo; cores de categoria só como identidade.
+- **Acessibilidade:** a auditoria automática com axe-core (regras WCAG 2.1 AA) não aponta violações
+  em nenhuma tela. O cinza de texto secundário do Tailwind (`zinc-500`) foi clareado para passar de
+  3,7:1 para 4,7:1 de contraste; navegação por teclado com foco visível; diálogos com foco preso.
+- **Mobile first:** barra de navegação inferior no celular (com indicador que desliza para a página
+  ativa), cartões no lugar de tabelas, filtros recolhíveis, áreas seguras do iPhone respeitadas.
+- **Performance:** cada página é carregada sob demanda; os gráficos (Recharts) só são baixados com o
+  dashboard.
 
 ## Testes
 

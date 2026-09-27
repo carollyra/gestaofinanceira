@@ -103,7 +103,7 @@ export function CategoriesPage() {
           >
             {label}{' '}
             {categories.data && (
-              <span className="text-zinc-500">
+              <span className="text-zinc-400">
                 ({categories.data.filter((c) => c.type === value).length})
               </span>
             )}

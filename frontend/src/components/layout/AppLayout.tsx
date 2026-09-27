@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import {
   ArrowLeftRight,
   LayoutDashboard,
@@ -8,15 +9,17 @@ import {
   Tags,
   Target,
   Upload,
-  Wallet,
   WalletCards,
 } from 'lucide-react';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 
+import { BrandLogo } from '@/components/BrandMark';
+import { PageSkeleton } from '@/components/skeletons';
 import { Modal } from '@/components/ui/Modal';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/utils/cn';
+import { quickSpring, spring } from '@/utils/motion';
 
 interface NavItem {
   to: string;
@@ -49,12 +52,9 @@ export function AppLayout() {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-10 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-          <span className="flex items-center gap-2 font-semibold text-zinc-50">
-            <Wallet aria-hidden className="size-5 text-emerald-400" />
-            Finanças
-          </span>
+          <BrandLogo />
 
           <nav aria-label="Principal" className="hidden flex-1 gap-1 md:flex">
             {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
@@ -65,14 +65,29 @@ export function AppLayout() {
                 title={label}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors',
-                    isActive ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-400 hover:text-zinc-100',
+                    'relative isolate flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors',
+                    'focus-visible:outline-2 focus-visible:outline-emerald-400',
+                    isActive ? 'text-zinc-50' : 'text-zinc-400 hover:text-zinc-100',
                   )
                 }
               >
-                <Icon aria-hidden className="size-4" />
-                {/* Labels from lg; icons with a tooltip in between */}
-                <span className="sr-only lg:not-sr-only">{label}</span>
+                {({ isActive }) => (
+                  <>
+                    {/* The highlight slides to the new page: it shows where you went from */}
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-active"
+                        aria-hidden
+                        // Behind icon and label (isolate on the link keeps it inside)
+                        className="absolute inset-0 -z-10 rounded-lg bg-zinc-800"
+                        transition={quickSpring}
+                      />
+                    )}
+                    <Icon aria-hidden className="relative size-4" />
+                    {/* Labels from lg; icons with a tooltip in between */}
+                    <span className="sr-only relative lg:not-sr-only">{label}</span>
+                  </>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -91,13 +106,23 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pt-6 pb-24 md:pb-10">
-        <Outlet />
+      <main className="mx-auto max-w-6xl px-4 pt-6 pb-28 md:pb-12">
+        {/* Each page eases in (no exit animation: the new page is never delayed) */}
+        <motion.div
+          key={pathname}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={spring}
+        >
+          <Suspense fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
+        </motion.div>
       </main>
 
       <nav
         aria-label="Principal"
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-zinc-800 bg-zinc-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-10 border-t border-zinc-800/80 bg-zinc-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
       >
         <ul className="flex">
           {MOBILE_PRIMARY.map(({ to, label, icon: Icon, end }) => (
@@ -107,13 +132,25 @@ export function AppLayout() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-1 py-2.5 text-xs transition-colors',
+                    'relative flex flex-col items-center gap-1 py-2.5 text-xs transition-colors',
                     isActive ? 'text-emerald-400' : 'text-zinc-400',
                   )
                 }
               >
-                <Icon aria-hidden className="size-5" />
-                {label}
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.span
+                        layoutId="mobile-nav-active"
+                        aria-hidden
+                        className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-400"
+                        transition={quickSpring}
+                      />
+                    )}
+                    <Icon aria-hidden className="size-5" />
+                    {label}
+                  </>
+                )}
               </NavLink>
             </li>
           ))}
@@ -123,10 +160,18 @@ export function AppLayout() {
               onClick={() => setMoreOpen(true)}
               aria-haspopup="dialog"
               className={cn(
-                'flex w-full flex-col items-center gap-1 py-2.5 text-xs transition-colors',
+                'relative flex w-full flex-col items-center gap-1 py-2.5 text-xs transition-colors',
                 moreActive ? 'text-emerald-400' : 'text-zinc-400',
               )}
             >
+              {moreActive && (
+                <motion.span
+                  layoutId="mobile-nav-active"
+                  aria-hidden
+                  className="absolute top-0 h-0.5 w-8 rounded-full bg-emerald-400"
+                  transition={quickSpring}
+                />
+              )}
               <Menu aria-hidden className="size-5" />
               Mais
             </button>

@@ -196,7 +196,7 @@ export function ImportReviewStep({
                 filter === value ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-400 hover:text-zinc-100',
               )}
             >
-              {label} <span className="text-zinc-500 tabular-nums">{count}</span>
+              {label} <span className="text-zinc-400 tabular-nums">{count}</span>
             </button>
           ))}
         </div>
