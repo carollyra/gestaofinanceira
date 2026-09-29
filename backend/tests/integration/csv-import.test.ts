@@ -158,6 +158,34 @@ describe('CSV import', () => {
     expect(summary.body).toMatchObject({ income: 650_000, expense: 26_749 });
   });
 
+  it('records where each transaction came from', async () => {
+    const manual = await user.createTransaction({
+      accountId: account.id,
+      type: 'EXPENSE',
+      amount: 100,
+      date: '2026-03-01',
+    });
+    await user.post('/api/imports/confirm', {
+      ...toConfirmBody((await preview(STATEMENT)).body.rows),
+      fileName: 'extrato-marco.csv',
+    });
+
+    const list = await user.get(`/api/transactions?accountId=${account.id}&pageSize=100`);
+    const imported = list.body.data.filter((t: { id: string }) => t.id !== manual.id);
+
+    expect((await user.get(`/api/transactions/${manual.id}`)).body).toMatchObject({
+      source: 'MANUAL',
+      importFileName: null,
+    });
+    expect(imported).toHaveLength(5);
+    expect(
+      imported.every(
+        (t: { source: string; importFileName: string }) =>
+          t.source === 'IMPORT' && t.importFileName === 'extrato-marco.csv',
+      ),
+    ).toBe(true);
+  });
+
   it('inverts signs for credit card statements', async () => {
     const response = await preview(
       'date,title,amount\n2026-03-03,Mercado,150.00\n2026-03-04,Estorno,-20.00',

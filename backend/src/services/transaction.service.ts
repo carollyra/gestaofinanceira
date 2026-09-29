@@ -20,6 +20,8 @@ const transactionSelect = {
   description: true,
   notes: true,
   recurringTransactionId: true,
+  source: true,
+  importFileName: true,
   createdAt: true,
   updatedAt: true,
   account: { select: { id: true, name: true, color: true, type: true } },

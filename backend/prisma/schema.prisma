@@ -28,6 +28,13 @@ enum AccountType {
   OTHER
 }
 
+// How a transaction entered the system (shown in its detail)
+enum TransactionSource {
+  MANUAL
+  IMPORT
+  RECURRING
+}
+
 enum RecurrenceFrequency {
   WEEKLY
   MONTHLY
@@ -96,19 +103,22 @@ model Category {
 }
 
 model Transaction {
-  id                     String          @id @default(uuid(7)) @db.Uuid
-  userId                 String          @map("user_id") @db.Uuid
-  accountId              String          @map("account_id") @db.Uuid
-  categoryId             String?         @map("category_id") @db.Uuid
-  recurringTransactionId String?         @map("recurring_transaction_id") @db.Uuid
+  id                     String            @id @default(uuid(7)) @db.Uuid
+  userId                 String            @map("user_id") @db.Uuid
+  accountId              String            @map("account_id") @db.Uuid
+  categoryId             String?           @map("category_id") @db.Uuid
+  recurringTransactionId String?           @map("recurring_transaction_id") @db.Uuid
   type                   TransactionType
   // Always positive; the sign comes from `type`
   amount                 Int
-  date                   DateTime        @db.Date
-  description            String          @db.VarChar(255)
+  date                   DateTime          @db.Date
+  description            String            @db.VarChar(255)
   notes                  String?
-  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt              DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  source                 TransactionSource @default(MANUAL)
+  // Name of the CSV file, for imported transactions
+  importFileName         String?           @map("import_file_name") @db.VarChar(255)
+  createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   // NoAction (checked at end of statement) instead of Restrict, so deleting

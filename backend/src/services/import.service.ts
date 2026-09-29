@@ -165,6 +165,8 @@ export async function confirmImport(userId: string, input: ConfirmImportInput) {
         date: row.date,
         description: row.description,
         notes: row.notes ?? null,
+        source: 'IMPORT' as const,
+        importFileName: input.fileName || null,
       })),
     });
 

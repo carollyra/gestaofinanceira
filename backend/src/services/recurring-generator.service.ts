@@ -69,6 +69,7 @@ async function generateForTemplate(template: Template, today: Date): Promise<num
         amount: template.amount,
         description: template.description,
         notes: template.notes,
+        source: 'RECURRING' as const,
         date,
       })),
       skipDuplicates: true,

@@ -44,6 +44,8 @@ export const confirmImportSchema = z.object({
   accountId: z.uuid('Conta inválida'),
   // Exact duplicates are skipped by default; also protects against double submits
   skipDuplicates: z.boolean().default(true),
+  // Original file name, kept on each transaction to show where it came from
+  fileName: z.string().trim().max(255).optional(),
   rows: z
     .array(
       z.object({

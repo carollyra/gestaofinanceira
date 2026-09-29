@@ -79,6 +79,7 @@ describe('recurring generation', () => {
       amount: 9_990,
       type: 'EXPENSE',
       recurringTransactionId: template.id,
+      source: 'RECURRING',
     });
   });
 
