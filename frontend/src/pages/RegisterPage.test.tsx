@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 
 import { fakeUser, mockApi, renderWithProviders } from '@/test/render';
 
@@ -75,7 +75,8 @@ describe('RegisterPage', () => {
     await fillForm(user);
     await user.click(screen.getByRole('button', { name: 'Criar conta' }));
 
-    expect(await screen.findByTestId('location')).toHaveTextContent(/^\/$/);
+    // The probe exists from the start: wait for its text, not for the element
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/));
     expect(localStorage.getItem('financas:token')).toBe('jwt-token');
 
     const [url, init] = fetchMock.mock.calls[0]!;

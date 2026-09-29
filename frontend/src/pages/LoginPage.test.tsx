@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 
 import { fakeUser, mockApi, renderWithProviders } from '@/test/render';
 
@@ -39,7 +39,8 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Senha'), 'senha123');
     await user.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    expect(await screen.findByTestId('location')).toHaveTextContent('/transacoes');
+    // The probe exists from the start: wait for its text, not for the element
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/transacoes'));
   });
 
   it('explains connection failures', async () => {
