@@ -1,7 +1,24 @@
-# Controle Financeiro Pessoal
+# Gestão Financeira Pessoal
 
-Aplicação full stack para controle de finanças pessoais: contas, categorias, transações,
-recorrências, orçamentos, metas de economia, importação de CSV e dashboard com gráficos.
+Aplicação web full stack para organizar as finanças pessoais: contas, transações, categorias,
+orçamentos por categoria, metas de economia, lançamentos recorrentes, importação de extratos
+bancários em CSV e um dashboard com gráficos, tudo com dados isolados por usuário.
+
+**🔗 Projeto no ar: [gestaofinanceira-lake.vercel.app](https://gestaofinanceira-lake.vercel.app)**
+
+> ⏳ A API está hospedada no plano gratuito do Render, que hiberna o serviço após um período sem
+> uso. Por isso, **o primeiro acesso pode levar até 50 segundos**; depois disso, a navegação fica
+> rápida.
+
+**Acesso de demonstração**
+
+| E-mail              | Senha       |
+| ------------------- | ----------- |
+| `demo@financas.dev` | `demo12345` |
+
+A conta de demonstração já vem com **12 meses de dados**: três contas, receitas e despesas
+categorizadas, lançamentos gerados por recorrências, transferências entre contas, orçamentos e
+metas em andamento.
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
@@ -19,194 +36,231 @@ recorrências, orçamentos, metas de economia, importação de CSV e dashboard c
 
 ![Revisão da importação de CSV](docs/screenshots/import-review.png)
 
+## Sumário
+
+- [Stack](#stack)
+- [Funcionalidades](#funcionalidades)
+- [Decisões técnicas](#decisões-técnicas)
+- [Qualidade](#qualidade)
+- [Estrutura de pastas](#estrutura-de-pastas)
+- [Como rodar localmente](#como-rodar-localmente)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Principais endpoints](#principais-endpoints)
+- [Deploy](#deploy)
+- [Autora](#autora)
+
 ## Stack
 
-| Camada   | Tecnologias                                                                                     |
-| -------- | ----------------------------------------------------------------------------------------------- |
-| Frontend | React, TypeScript, Vite, Tailwind CSS, Recharts, Framer Motion, TanStack Query, React Hook Form |
-| Backend  | Node.js, TypeScript, Express, Zod, JWT, bcrypt                                                  |
-| Banco    | PostgreSQL (Neon) com Prisma ORM                                                                |
-| Testes   | Vitest, Supertest, Testing Library                                                              |
-| Tooling  | ESLint, Prettier                                                                                |
+| Camada         | Tecnologias                                                                                                                             |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend       | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query, React Hook Form + Zod, Recharts, Framer Motion, lucide-react  |
+| Backend        | Node.js, TypeScript, Express 5, Prisma 7, Zod, JWT (jsonwebtoken), bcrypt, Multer, csv-parse, Helmet, express-rate-limit                |
+| Banco de dados | PostgreSQL (Neon), com migrations do Prisma e extensão `pg_trgm`                                                                        |
+| Infraestrutura | API no Render, frontend na Vercel, banco no Neon                                                                                        |
+| Testes         | Vitest, Supertest e Testing Library; testes de integração contra PostgreSQL real; auditoria de acessibilidade com axe-core e Playwright |
+| Ferramentas    | ESLint, Prettier, tsup, tsx                                                                                                             |
 
-## Decisões técnicas
+## Funcionalidades
 
-- **Dinheiro como inteiro em centavos.** Nenhum valor monetário é armazenado ou calculado em
-  ponto flutuante; a conversão acontece apenas na borda (entrada do usuário e exibição).
-- **Paginação, filtros e ordenação no servidor** em toda listagem de transações.
-- **Agregações no banco.** Totais, somatórios por categoria e evolução mensal são calculados
-  por query SQL, não em memória no Node.
-- **Isolamento por usuário.** Todo acesso a dados é escopado ao usuário autenticado. Além do
-  filtro na aplicação, as relações entre tabelas do usuário usam chaves estrangeiras compostas
-  (`[account_id, user_id] -> accounts[id, user_id]`), então o próprio banco rejeita uma transação
-  que aponte para a conta ou categoria de outro usuário.
-- **Integridade no banco.** Constraints `CHECK` garantem valores positivos, cores em hex, dia de
-  recorrência válido e mês de orçamento sempre no dia 1. Recorrências têm índice único
-  `(recurring_transaction_id, date)`, o que torna a geração de ocorrências idempotente.
-- **Transferências em tabela própria.** Mover dinheiro entre contas (pagar a fatura do cartão,
-  sacar para a carteira) não é receita nem despesa. Por isso transferências ficam na tabela
-  `transfers`, e não como um tipo de transação: totais de entrada/saída e relatórios por categoria
-  leem apenas `transactions`, então é impossível uma transferência inflar esses números. Elas
-  entram só no saldo das contas, e o saldo total não muda (o que sai de uma conta entra na outra).
-- **Origem de cada transação.** O campo `source` (`MANUAL`, `IMPORT`, `RECURRING`) e o nome do
-  arquivo importado ficam gravados na transação; a migration preenche `RECURRING` para as
-  ocorrências já geradas.
-- **Datas sem fuso.** Datas de transação usam o tipo `date` do PostgreSQL, sem horário.
+### Transações
 
-## Modelagem
-
-`User` · `Account` (saldo inicial) · `Category` (receita/despesa, cor, ícone) · `Transaction` ·
-`RecurringTransaction` (semanal, mensal, anual) · `Budget` (limite por categoria e mês) ·
-`Transfer` (conta de origem → conta de destino) · `Goal` (valor alvo, valor atual, prazo). O schema completo está em
-[`backend/prisma/schema.prisma`](backend/prisma/schema.prisma).
-
-## API
-
-Base: `/api`. Rotas autenticadas exigem `Authorization: Bearer <token>`. Erros seguem o formato
-`{ "message": string, "details"?: { campo: string[] } }`.
-
-| Método | Rota             | Auth | Descrição                            |
-| ------ | ---------------- | ---- | ------------------------------------ |
-| GET    | `/health`        |      | Health check                         |
-| POST   | `/auth/register` |      | Cadastro (cria as categorias padrão) |
-| POST   | `/auth/login`    |      | Login, retorna `{ user, token }`     |
-| GET    | `/auth/me`       | ✓    | Usuário autenticado                  |
-
-Segurança da autenticação: senhas com bcrypt, JWT HS256 com algoritmo fixado na verificação,
-rate limit em login/cadastro, mesma mensagem e mesmo tempo de resposta para e-mail inexistente
-e senha errada (evita enumeração de usuários).
-
-### Listagem de transações
-
-`GET /transactions` aceita, todos opcionais:
-
-| Parâmetro                | Exemplo                       | Descrição                                                        |
-| ------------------------ | ----------------------------- | ---------------------------------------------------------------- |
-| `page`, `pageSize`       | `page=2&pageSize=50`          | Paginação (padrão 1 e 20; máximo 100 por página)                 |
-| `startDate`, `endDate`   | `startDate=2026-09-01`        | Período (inclusivo, `AAAA-MM-DD`)                                |
-| `type`                   | `type=EXPENSE`                | `INCOME` ou `EXPENSE`                                            |
-| `accountId`              | `accountId=<uuid>`            | Conta                                                            |
-| `categoryId`             | `categoryId=none`             | Categoria, ou `none` para sem categoria                          |
-| `search`                 | `search=conta luz`            | Cada palavra precisa aparecer na descrição ou nas observações    |
-| `minAmount`, `maxAmount` | `minAmount=1000`              | Faixa de valor em centavos                                       |
-| `sortBy`, `sortOrder`    | `sortBy=amount&sortOrder=asc` | `date`, `amount`, `description`, `createdAt`; padrão `date desc` |
-
-Resposta: `{ data, meta: { page, pageSize, total, totalPages }, summary: { income, expense, balance } }`.
-O `summary` soma todo o conjunto filtrado, não só a página atual. A busca usa `ILIKE` com índices
-trigram (`pg_trgm`) e escapa os curingas `%` e `_`. A ordenação sempre desempata pelo id (UUIDv7),
-então as páginas não repetem nem pulam registros.
-
-### Transações recorrentes
-
-Um modelo tem frequência semanal (dia da semana 0–6), mensal (dia 1–31; dia 31 cai no último dia
-dos meses menores) ou anual (dia do mês de início), data de início e data final opcional. As
-ocorrências vencidas até hoje (no fuso `APP_TIMEZONE`) viram transações normais, geradas ao criar
-ou editar o modelo, por um agendador dentro do servidor (`RECURRING_JOB_INTERVAL_MINUTES`), pelo
-endpoint `/generate` ou por `npm run jobs:recurring` (para um cron externo).
-
-A geração não duplica mesmo rodando várias vezes ou em paralelo:
-
-1. Cada execução avança `last_run_date` com um `UPDATE ... WHERE last_run_date = <valor lido>`
-   dentro de uma transação. O `UPDATE` trava a linha; uma execução concorrente espera, não encontra
-   mais o valor antigo e não gera nada.
-2. O índice único `(recurring_transaction_id, date)` com `ON CONFLICT DO NOTHING` é uma segunda
-   barreira.
-3. Como a geração sempre começa depois de `last_run_date`, uma ocorrência excluída de propósito
-   pelo usuário não é recriada. Ao retomar um modelo pausado, o período pausado não é preenchido
-   retroativamente.
-
-### Orçamentos
-
-O gasto de cada orçamento é somado no banco com um `LEFT JOIN LATERAL` sobre as despesas da
-categoria no mês do orçamento. A listagem também traz o total orçado, o total gasto e o gasto em
-categorias sem orçamento no mês. O status é `OK` abaixo de 80% do limite, `WARNING` de 80% até o
-limite e `EXCEEDED` acima dele. A comparação é feita em centavos inteiros, e não no percentual
-arredondado: 1 centavo acima do limite já é `EXCEEDED`, mesmo que o percentual exibido seja 100%.
-
-### Metas
-
-Cada meta retorna `progress` com percentual (pode passar de 100%), valor restante, dias até o
-prazo, valor mensal necessário (arredondado para cima, para garantir que a meta seja atingida) e
-status: `COMPLETED`, `ON_TRACK`/`BEHIND` (comparando com um plano linear da criação até o prazo),
-`OVERDUE` ou `NO_DEADLINE`. Depósitos e retiradas são um único `UPDATE` atômico
-(`current = current ± valor`) com a condição no `WHERE`: requisições simultâneas não se
-sobrescrevem e uma retirada nunca deixa a meta negativa.
-
-### Importação de CSV
-
-Fluxo em duas etapas, sem estado no servidor: o preview analisa o arquivo e devolve as linhas; a
-confirmação recebe as linhas revisadas e valida tudo de novo (nunca confia no preview).
-
-- **Leitura:** detecta a codificação (UTF-8 ou Windows-1252, comum em bancos brasileiros), o
-  separador (`,` `;` tab `|`) e as colunas pelo nome (data, descrição/histórico, valor ou
-  crédito/débito, tipo, categoria), inclusive quando o banco coloca linhas de cabeçalho antes da
-  tabela. Linhas de saldo são ignoradas. Também aceita mapeamento manual de colunas e inversão de
-  sinal (faturas de cartão listam compras como valores positivos).
-- **Valores:** `1.234,56`, `R$ -45,90`, `(123,45)`, `1,234.56` etc. são convertidos para centavos
-  com aritmética de strings e inteiros, sem ponto flutuante.
-- **Erros por linha:** data impossível, valor inválido ou descrição ausente marcam só aquela linha,
-  com o número da linha no arquivo.
-- **Duplicatas:** `EXACT` (mesma data, valor, tipo e descrição, ignorando acentos e maiúsculas) ou
-  `POSSIBLE` (mesmo valor e tipo em até 2 dias). Cada transação existente casa com no máximo uma
-  linha: dois cafés iguais no arquivo contra um já lançado resultam em uma duplicata e uma nova.
-- **Categorização:** coluna de categoria do CSV → categoria mais usada pelo usuário para a mesma
-  descrição (histórico) → regras por palavra-chave (Uber → Transporte, Netflix → Assinaturas...).
-- **Confirmação:** roda numa transação com `pg_advisory_xact_lock` por conta e pula duplicatas
-  exatas por padrão, então confirmar duas vezes (ou em paralelo) não duplica a importação.
+- Cadastro, edição e exclusão de receitas e despesas, com categoria, conta e observações.
+- Listagem com **paginação no servidor**, filtros por período (mês, intervalo ou tudo), tipo, conta,
+  categoria (incluindo "sem categoria") e faixa de valor, busca textual e ordenação por data, valor
+  ou descrição. Os totais exibidos consideram todo o resultado filtrado, não só a página.
+- Todos os filtros ficam na URL (`/transacoes?mes=2026-09&tipo=despesa&busca=mercado`), então a
+  listagem pode ser compartilhada e sobrevive a recarregar a página.
+- **Detalhe em painel lateral** (no celular, uma folha que sobe de baixo) com a origem do lançamento:
+  manual, importado de CSV (com o nome do arquivo) ou gerado por recorrência. O item aberto também
+  fica na URL, e o botão voltar do navegador fecha o painel.
+- Campo de valor no estilo de aplicativo de banco (os dígitos entram pelos centavos) e exclusão com
+  confirmação, que remove a linha na hora e a devolve se a API falhar.
 
 ### Dashboard
 
-As agregações são feitas inteiramente no PostgreSQL: `SUM ... FILTER` para receitas e despesas do
-mês e do mês anterior em uma única varredura, `generate_series` para incluir meses sem movimento na
-evolução, função de janela (`SUM() OVER (ORDER BY mês)`) para o saldo de fechamento acumulado e
-`SUM(SUM(total)) OVER ()` para o percentual de cada categoria. Transferências não entram em
-nenhuma dessas somas. O "mês atual" é calculado no fuso `APP_TIMEZONE` (padrão
-`America/Sao_Paulo`), não no relógio UTC do servidor.
+- Saldo total, receitas e despesas do mês com variação em relação ao mês anterior e taxa de economia.
+- Gráficos de evolução do saldo e de receitas x despesas dos últimos 12 meses, e despesas por
+  categoria.
+- Cores validadas para daltonismo, uma versão em tabela para cada gráfico e o mês selecionado na URL.
 
-Regras de negócio: o saldo da conta é calculado em uma única query (`saldo inicial + receitas −
-despesas + transferências recebidas − transferências enviadas`); conta com transações não pode ser excluída, apenas arquivada; a categoria de uma transação precisa ser do mesmo tipo (receita/despesa); contas arquivadas não
-recebem novas movimentações; o tipo da categoria é imutável; ao excluir uma categoria, suas transações passam para a categoria substituta do mesmo
-tipo ou ficam sem categoria.
+### Orçamentos
 
-## Estrutura
+- Limite de gasto por categoria e por mês, com valor gasto, restante e percentual consumido.
+- Status "Dentro do limite", "Atenção" (a partir de 80%) ou "Estourado", sempre com ícone e texto.
+- Gasto fora dos orçamentos do mês e cópia dos orçamentos do mês anterior com um clique.
+
+### Metas
+
+- Metas de economia com valor alvo, valor guardado e prazo opcional.
+- Progresso, quanto guardar por mês para chegar no prazo e indicação de "No ritmo", "Atrasada",
+  "Prazo vencido" ou "Concluída".
+- Depósitos e retiradas, com bloqueio de retirada acima do valor guardado.
+
+### Recorrências
+
+- Modelos semanais, mensais ou anuais (dia 31 vira o último dia dos meses mais curtos), com data de
+  início e data final opcional; é possível pausar e retomar.
+- As ocorrências vencidas viram transações automaticamente: ao criar ou editar o modelo, por um
+  agendador dentro do servidor e por um endpoint manual.
+- No app, o detalhe de cada transação gerada mostra a recorrência de origem, com frequência, próxima
+  ocorrência e quantidade de lançamentos. A criação e a edição de modelos estão disponíveis pela API.
+
+### Importação de CSV
+
+- Fluxo em três etapas: envio do arquivo, revisão linha a linha e confirmação.
+- Leitura de extratos reais de bancos brasileiros: codificação Windows-1252, separador `;`, vírgula
+  decimal, `R$`, datas `dd/mm/aaaa`, cabeçalho do banco antes da tabela e linhas de saldo.
+- Detecção de **duplicatas** (exatas e possíveis) e **sugestão de categoria** pelo histórico do
+  usuário ou por palavras-chave, com possibilidade de trocar a categoria por linha ou em lote.
+- Mapeamento manual das colunas quando o arquivo tem um formato desconhecido.
+
+### Contas e transferências
+
+- Carteiras, contas correntes, poupança, cartões e investimentos, com saldo atual calculado a partir
+  do saldo inicial (que pode ser negativo, como uma fatura em aberto) e das movimentações.
+- Contas com histórico podem ser arquivadas em vez de excluídas.
+- Transferências entre contas, com lista das mais recentes, detalhe, edição e exclusão.
+
+### Conta de usuário e experiência
+
+- Cadastro com as 19 categorias padrão já criadas, login com JWT e regras de senha exibidas enquanto
+  a pessoa digita.
+- Interface em português, tema escuro, layout pensado primeiro para o celular e animações curtas que
+  respeitam a preferência do sistema por menos movimento.
+
+## Decisões técnicas
+
+**Valores em centavos inteiros, nunca `float`.** Números de ponto flutuante não representam
+exatamente valores como 0,10 (`0.1 + 0.2 !== 0.3`), e esses erros se acumulam em somas. Todo valor
+monetário é guardado e calculado como inteiro em centavos; a conversão para reais só acontece na
+borda, ao digitar e ao exibir. O parser de CSV converte "1.234,56" para `123456` sem passar por
+`float`.
+
+**Isolamento entre usuários garantido pelo banco.** Além de toda consulta filtrar pelo usuário
+autenticado, as tabelas se relacionam por **chaves estrangeiras compostas**
+(`[account_id, user_id] → accounts[id, user_id]`). Assim, o próprio PostgreSQL rejeita uma transação
+que aponte para a conta ou categoria de outro usuário, mesmo que um bug na aplicação tente gravar
+isso.
+
+**Constraints `CHECK` para integridade.** Regras que não podem ser violadas ficam no banco: valores
+positivos, cores em hexadecimal, dia de recorrência válido para a frequência, data final posterior à
+inicial, mês de orçamento sempre no dia 1 e conta de destino diferente da de origem.
+
+**Agregações em SQL, não em memória.** Os números do dashboard e dos orçamentos são calculados pelo
+PostgreSQL: `SUM(...) FILTER (WHERE ...)` para receitas e despesas do mês atual e do anterior em uma
+única varredura, `generate_series` para incluir meses sem movimento, funções de janela
+(`SUM() OVER (ORDER BY mês)`) para o saldo acumulado e `LATERAL` para somar o gasto de cada orçamento.
+O Node recebe o resultado pronto, em vez de carregar milhares de linhas.
+
+**Transferências em tabela própria.** Mover dinheiro entre contas não é receita nem despesa. Por isso
+as transferências ficam na tabela `transfers`, e não como um tipo de transação: os totais e gráficos
+leem apenas `transactions` e não têm como ser inflados por uma transferência, que afeta só os saldos.
+
+**Datas sem fuso e mês atual no fuso da aplicação.** A data de uma transação é um dia do calendário,
+guardada no tipo `date` do PostgreSQL, sem horário. O "hoje" e o "mês atual" são calculados no fuso
+configurado (`America/Sao_Paulo`), e não no relógio UTC do servidor: às 22h do último dia do mês, o
+app ainda mostra o mês certo.
+
+**Recorrências sem duplicação.** Cada execução do gerador "reserva" o modelo com um
+`UPDATE ... WHERE last_run_date = <valor lido>` dentro de uma transação. O `UPDATE` trava a linha, então
+uma execução concorrente espera e depois não encontra nada a gerar. Um índice único em
+`(recurring_transaction_id, date)` é a segunda barreira. Como a geração sempre começa depois da
+última data processada, uma ocorrência excluída de propósito não é recriada.
+
+**Advisory lock na importação de CSV.** A confirmação roda dentro de uma transação com
+`pg_advisory_xact_lock` por conta e revalida as duplicatas. Um duplo clique em "Importar" ou duas
+abas confirmando ao mesmo tempo não duplicam os lançamentos: a segunda confirmação espera a primeira
+e encontra tudo já registrado.
+
+**Depósitos e retiradas atômicos nas metas.** Cada movimentação é um único
+`UPDATE ... SET current = current ± valor` com a condição no `WHERE` (por exemplo, saldo suficiente
+para a retirada). Requisições simultâneas não sobrescrevem umas às outras e a meta nunca fica
+negativa.
+
+**Paginação com ordenação determinística.** A ordenação escolhida pelo usuário é sempre desempatada
+pelo id (UUIDv7, que é ordenado pelo tempo). Sem isso, registros com o mesmo valor ou a mesma data
+poderiam aparecer repetidos em duas páginas ou sumir entre elas. Os campos de ordenação vêm de uma
+lista permitida.
+
+**Busca textual com índice trigram e escape de curingas.** A busca usa `ILIKE '%termo%'`, acelerada por
+índices GIN com `pg_trgm` na descrição e nas observações. Os caracteres `%` e `_` digitados pelo
+usuário são escapados: sem isso, buscar "50%" ou "%" retornaria todas as transações.
+
+## Qualidade
+
+| Área     | Testes  | O que cobrem                                                |
+| -------- | ------- | ----------------------------------------------------------- |
+| Backend  | **185** | 147 unitários e 38 de integração                            |
+| Frontend | **130** | Componentes, páginas e fluxos completos com Testing Library |
+
+- **Integração contra PostgreSQL real.** Os testes de integração rodam em um banco separado e
+  descartável, migrado e limpo automaticamente a cada execução, e cobrem saldos e agregações, geração
+  de recorrências (inclusive com execuções concorrentes), o fluxo de importação e o isolamento entre
+  usuários (acesso, listagem e referência a dados de outra pessoa, inclusive direto no banco).
+- **Testes validados por mutação.** Defeitos foram introduzidos de propósito no código (remover a
+  trava das recorrências, o advisory lock da importação, o filtro por usuário de uma consulta) para
+  confirmar que os testes correspondentes falham. Esse processo revelou um teste de concorrência que
+  não exercitava concorrência de verdade, que foi corrigido.
+- **Acessibilidade WCAG 2.1 AA.** Auditoria automática com axe-core em todas as telas, inclusive com
+  diálogos e painéis abertos, sem violações. Diálogos com foco preso e devolvido a quem os abriu,
+  navegação por teclado com foco visível, rótulos para leitores de tela e cor nunca como único sinal.
+- **Verificação no navegador.** As telas foram conferidas em um navegador real (Chromium com
+  Playwright), em desktop e celular, com os dados de demonstração.
+- **Padronização.** TypeScript em modo estrito, ESLint e Prettier nos dois projetos e commits no
+  padrão Conventional Commits.
+
+## Estrutura de pastas
 
 ```
 .
 ├── backend/
-│   ├── prisma/          # schema, migrations e seed
+│   ├── prisma/
+│   │   ├── schema.prisma        # modelagem do banco
+│   │   ├── migrations/          # migrations versionadas (com constraints CHECK e índices)
+│   │   └── seed.ts              # usuário de demonstração com 12 meses de dados
+│   ├── src/
+│   │   ├── controllers/         # entrada das rotas: valida e chama os services
+│   │   ├── services/            # regras de negócio e consultas
+│   │   ├── routes/              # definição dos endpoints
+│   │   ├── schemas/             # validação com Zod
+│   │   ├── middlewares/         # autenticação, erros, upload, rate limit
+│   │   ├── jobs/                # agendador das recorrências
+│   │   ├── utils/               # dinheiro, datas, recorrência, parser de CSV...
+│   │   ├── app.ts               # configuração do Express
+│   │   └── server.ts            # inicialização
+│   └── tests/
+│       ├── unit/                # sem banco
+│       └── integration/         # contra PostgreSQL real
+├── frontend/
 │   └── src/
-│       ├── controllers/
-│       ├── middlewares/
-│       ├── routes/
-│       ├── schemas/     # validação com Zod
-│       ├── services/    # regras de negócio
-│       └── utils/
-└── frontend/
-    └── src/
-        ├── components/
-        ├── contexts/
-        ├── hooks/
-        ├── pages/
-        ├── services/    # cliente HTTP
-        └── utils/
+│       ├── pages/               # uma página por rota
+│       ├── components/          # por área (dashboard, transações, importação...) e ui/ genéricos
+│       ├── hooks/               # dados (TanStack Query), filtros na URL, diálogos
+│       ├── services/            # cliente HTTP e chamadas à API
+│       ├── contexts/            # autenticação e avisos
+│       ├── utils/               # formatação, regras de senha, filtros, animações
+│       └── types/               # tipos das respostas da API
+├── docs/screenshots/            # imagens deste README
+└── render.yaml                  # configuração opcional do serviço no Render
 ```
 
 ## Como rodar localmente
 
-Pré-requisitos: Node.js 22.12+ e um banco PostgreSQL (ex.: [Neon](https://neon.tech)).
+### Pré-requisitos
+
+- Node.js 22.12 ou superior (o projeto usa a versão 24)
+- Um banco PostgreSQL, local ou gratuito no [Neon](https://neon.tech)
 
 ### Backend
 
 ```bash
 cd backend
-cp .env.example .env   # preencha DATABASE_URL, DIRECT_URL e JWT_SECRET
-npm install            # também gera o Prisma Client
-npm run db:migrate     # aplica as migrations
-npm run db:seed        # usuário demo com categorias, contas e 12 meses de transações
-npm run dev            # http://localhost:3333/api/health
+cp .env.example .env     # preencha DATABASE_URL, DIRECT_URL e JWT_SECRET
+npm install              # também gera o Prisma Client
+npm run db:migrate       # aplica as migrations
+npm run db:seed          # cria o usuário de demonstração
+npm run dev              # API em http://localhost:3333/api
 ```
-
-Login demo: `demo@financas.dev` / `demo12345`.
 
 ### Frontend
 
@@ -214,223 +268,104 @@ Login demo: `demo@financas.dev` / `demo12345`.
 cd frontend
 cp .env.example .env
 npm install
-npm run dev            # http://localhost:5173
+npm run dev              # app em http://localhost:5173
 ```
 
-## Frontend
+Entre com `demo@financas.dev` / `demo12345` ou crie uma conta.
 
-- **Autenticação:** contexto React com o usuário e o status da sessão. Ao abrir o app, um token
-  salvo só é aceito depois de validado em `/auth/me`; qualquer resposta 401 durante o uso encerra a
-  sessão. Rotas protegidas redirecionam para o login e voltam para a página pedida depois de entrar.
-- **Formulários:** React Hook Form + Zod. As regras de senha (8+ caracteres, uma letra, um número)
-  são as mesmas do backend, para feedback imediato, com um checklist que marca cada requisito
-  enquanto a pessoa digita; o servidor continua validando, e os erros de campo retornados pela API
-  aparecem no input correspondente.
-- **Acessibilidade:** labels associados, `aria-invalid` e `aria-describedby` nos erros, botão de
-  mostrar/ocultar senha com `aria-label` e `aria-pressed`, alertas com `role="alert"`.
-- **Dashboard:** cards de resumo (saldo total, receitas e despesas do mês com variação contra o mês
-  anterior, resultado e taxa de economia), evolução do saldo, receitas x despesas e despesas por
-  categoria. O mês fica na URL (`?mes=2026-09`) e é o único filtro, acima de todos os blocos, que
-  sempre mostram o mesmo recorte. Dados com TanStack Query: ao trocar de mês, o conteúdo anterior
-  fica esmaecido até os novos dados chegarem, sem piscar esqueletos.
-- **Gráficos (Recharts):** paleta categórica validada para daltonismo contra a superfície escura
-  (receitas e despesas usam os slots azul e laranja; verde/vermelho ficam reservados para status),
-  uma única escala por gráfico, linhas de 2px, barras de no máximo 24px, rótulo só no último ponto
-  e tooltip com crosshair. Despesas por categoria usam barras horizontais ordenadas (não pizza), monocromáticas na cor
-  semântica de despesa: o maior valor na cor cheia e os seguintes progressivamente mais suaves
-  (mesmo matiz, gerado em OKLCH, contraste de 4,6:1 a 2,2:1 contra o card); ponto e barra de cada
-  item têm exatamente a mesma cor, e nome, valor e percentual seguem visíveis. Listas de receitas
-  usam a mesma regra com o azul de receita. A cauda é agrupada em "Outras". Todo
-  gráfico tem uma visualização em tabela equivalente. No celular, receitas x despesas mostra os
-  últimos 6 meses.
-- **Transações:** busca (espera a pessoa parar de digitar antes de consultar a API), período (mês,
-  intervalo personalizado ou tudo), tipo, conta e categoria (inclusive "sem categoria"), ordenação
-  por data, valor ou descrição, e paginação com totais do filtro inteiro. Todos os filtros ficam na
-  URL em português (`/transacoes?mes=2026-09&tipo=despesa&busca=mercado&pagina=2`), então a lista
-  pode ser compartilhada e sobrevive a recarregar e voltar. Tabela com cabeçalhos ordenáveis
-  (`aria-sort`) no desktop; no celular, cartões agrupados por dia, filtros recolhidos atrás de um
-  botão e navegação fixa na parte de baixo da tela.
-- **Detalhe em drawer:** clicar numa transação abre um painel lateral (no celular, uma folha que sobe
-  de baixo) com valor, descrição, observações, categoria, conta de origem ou destino, data por
-  extenso, horário de registro e a origem: lançada manualmente, importada de CSV (com o nome do
-  arquivo) ou gerada por uma recorrência, com link para o detalhe da recorrência. O item aberto fica
-  na URL junto com os filtros (`/transacoes?tipo=despesa&transacao=<id>`): o link pode ser
-  compartilhado e o botão voltar do navegador fecha o drawer. Esc, clique fora e o botão de fechar
-  também fecham; o foco fica preso no drawer e volta para a linha. Editar e excluir abrem por cima
-  (só o diálogo do topo responde ao Esc). Transferências seguem o mesmo padrão na tela de contas.
-- **Formulário de transação:** criar e editar no mesmo modal (acessível: foco preso, Esc fecha,
-  foco volta a quem abriu). O campo de valor funciona como app de banco (os dígitos entram pelos
-  centavos: "1250" vira R$ 12,50) e converte para centavos inteiros ali mesmo. As categorias
-  mostradas seguem o tipo (receita/despesa). Na edição, o PATCH envia só os campos alterados, o
-  que permite corrigir uma transação antiga de uma conta arquivada. Excluir pede confirmação,
-  remove a linha na hora (atualização otimista, com colapso animado) e a devolve se a API falhar.
-  Toda mudança atualiza lista, dashboard, saldos e orçamentos (invalidação das queries).
-- **Contas, categorias, orçamentos e metas:** telas completas de cadastro. Contas com saldo atual,
-  saldo inicial negativo (fatura em aberto), arquivar/desarquivar e transferência entre contas.
-  Categorias em abas (despesas/receitas) com seletor de cor e ícone; o tipo é imutável e, ao
-  excluir, as transações podem ir para outra categoria do mesmo tipo. Orçamentos por mês (na URL)
-  com consumo, status com ícone + rótulo (paleta de status reservada) e cópia do mês anterior.
-  Metas com progresso, prazo, "guarde R$ X por mês" e depósito/retirada. No celular, a barra
-  inferior tem os quatro destinos mais usados e o restante fica em "Mais".
-- **Importação de CSV:** fluxo em três etapas (arquivo → revisão → concluído). Na revisão, linhas
-  válidas vêm marcadas; duplicatas exatas e possíveis vêm desmarcadas com o motivo ("já
-  registrada: Salário em 05/09"); linhas com erro ou ignoradas aparecem, mas não podem ser
-  marcadas. A categoria sugerida mostra a origem (arquivo, histórico ou palavra-chave) e pode ser
-  trocada por linha ou em lote (só nas linhas do mesmo tipo). Se o servidor não reconhecer as
-  colunas, aparece um mapeamento manual com nomes sugeridos a partir das primeiras linhas do
-  arquivo. Arquivos grandes são paginados na revisão.
-- **Animações (Framer Motion):** toda animação comunica origem, mudança ou hierarquia. São todas
-  molas físicas sem bounce, com duração total de no máximo 350 ms, e nenhuma atrasa a leitura do
-  dado (a primeira renderização mostra os valores direto). Gráficos entram uma única vez ao
-  aparecer na tela (linha revelada da esquerda para a direita, barras crescendo da base, receitas e
-  depois despesas); a curva do Recharts é a de uma mola criticamente amortecida. Valores dos cards
-  contam do anterior para o novo quando o mês muda; o conteúdo chega do lado da seta clicada;
-  barras de categoria preenchem com 40 ms entre itens; linhas da lista entram em cascata e, ao
-  reordenar ou sair, as demais deslizam para o novo lugar (layout animation); gráfico e tabela
-  trocam em crossfade; cards elevam no hover; modais crescem a partir do botão que os abriu.
-  Carregamentos usam skeletons com a forma do conteúdo, sem spinners. Com
-  `prefers-reduced-motion`, deslocamentos e contagens são removidos e só a opacidade muda.
-- **Token:** guardado no `localStorage` por simplicidade. Em produção, um cookie `httpOnly`
-  reduziria a exposição a XSS, ao custo de exigir proteção contra CSRF.
+### Scripts úteis
 
-## Design
+| Onde    | Script                     | O que faz                                          |
+| ------- | -------------------------- | -------------------------------------------------- |
+| ambos   | `npm run dev`              | Ambiente de desenvolvimento                        |
+| ambos   | `npm run build`            | Build de produção                                  |
+| ambos   | `npm test`                 | Todos os testes                                    |
+| ambos   | `npm run lint`             | ESLint                                             |
+| ambos   | `npm run typecheck`        | Checagem de tipos                                  |
+| backend | `npm run test:unit`        | Só os testes unitários (não precisam de banco)     |
+| backend | `npm run test:integration` | Testes de integração (usam `DATABASE_URL_TEST`)    |
+| backend | `npm run db:migrate`       | Cria e aplica migrations em desenvolvimento        |
+| backend | `npm run db:deploy`        | Aplica migrations pendentes (produção)             |
+| backend | `npm run db:seed`          | Recria o usuário de demonstração                   |
+| backend | `npm run db:studio`        | Abre o Prisma Studio                               |
+| backend | `npm run jobs:recurring`   | Gera as recorrências vencidas de todos os usuários |
 
-- **Visual escuro** em camadas: página quase preta com um brilho sutil da cor da marca no topo, cards
-  com um realce de 1px na borda superior para dar profundidade sem bordas extras.
-- **Tipografia:** Bricolage Grotesque nos títulos (grotesca com personalidade, com ajuste óptico
-  por tamanho) e Geist na interface e nos números (algarismos tabulares onde valores se alinham).
-  As duas são servidas pelo próprio app (Fontsource), sem chamadas a terceiros.
-- **Hierarquia:** um único número de destaque por tela (o saldo total no dashboard), na mesma fonte
-  da interface; títulos na fonte de display.
-- **Cores com significado:** azul para receita e laranja para despesa em todo o app (validadas para
-  daltonismo contra a superfície dos cards); verde/âmbar/vermelho reservados para status, sempre com
-  ícone e rótulo; cores de categoria só como identidade.
-- **Acessibilidade:** a auditoria automática com axe-core (regras WCAG 2.1 AA) não aponta violações
-  em nenhuma tela. O cinza de texto secundário do Tailwind (`zinc-500`) foi clareado para passar de
-  3,7:1 para 4,7:1 de contraste; navegação por teclado com foco visível; diálogos com foco preso.
-- **Mobile first:** barra de navegação inferior no celular (com indicador que desliza para a página
-  ativa), cartões no lugar de tabelas, filtros recolhíveis, áreas seguras do iPhone respeitadas.
-- **Performance:** cada página é carregada sob demanda; os gráficos (Recharts) só são baixados com o
-  dashboard.
+## Variáveis de ambiente
+
+### Backend (`backend/.env`)
+
+| Variável                         | Obrigatória    | Descrição                                                                                                                            |
+| -------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                   | sim            | Conexão com o PostgreSQL usada pela API (no Neon, a URL com pooler)                                                                  |
+| `DIRECT_URL`                     | recomendada    | Conexão direta, usada pelas migrations (no Neon, a URL sem pooler)                                                                   |
+| `JWT_SECRET`                     | sim            | Segredo dos tokens, com 32 caracteres ou mais                                                                                        |
+| `CORS_ORIGIN`                    | em produção    | Origens permitidas, separadas por vírgula; aceita `*` em subdomínio (ex.: previews da Vercel). Padrão local: `http://localhost:5173` |
+| `NODE_ENV`                       | não            | `development` (padrão) ou `production`                                                                                               |
+| `PORT`                           | não            | Porta da API (padrão `3333`; no Render, definida automaticamente)                                                                    |
+| `JWT_EXPIRES_IN`                 | não            | Validade do token (padrão `1d`)                                                                                                      |
+| `BCRYPT_SALT_ROUNDS`             | não            | Custo do hash de senha (padrão `10`)                                                                                                 |
+| `APP_TIMEZONE`                   | não            | Fuso usado para "hoje" e o mês atual (padrão `America/Sao_Paulo`)                                                                    |
+| `RECURRING_JOB_INTERVAL_MINUTES` | não            | Intervalo do agendador de recorrências (padrão `60`; `0` desliga)                                                                    |
+| `DATABASE_URL_TEST`              | só para testes | Banco separado e descartável dos testes de integração (o nome precisa conter `test`)                                                 |
+
+### Frontend (`frontend/.env`)
+
+| Variável       | Obrigatória      | Descrição                                                                                                 |
+| -------------- | ---------------- | --------------------------------------------------------------------------------------------------------- |
+| `VITE_API_URL` | sim, em produção | Endereço da API com `/api` (padrão local: `http://localhost:3333/api`). O build de produção falha sem ela |
+
+## Principais endpoints
+
+Todas as rotas ficam sob `/api`. As autenticadas exigem o cabeçalho `Authorization: Bearer <token>`.
+Os erros seguem o formato `{ "message": string, "details"?: { campo: string[] } }`.
+
+| Método                     | Rota                               | Acesso      | Descrição                                                                          |
+| -------------------------- | ---------------------------------- | ----------- | ---------------------------------------------------------------------------------- |
+| `GET`                      | `/health`                          | público     | Verificação de saúde da API                                                        |
+| `POST`                     | `/auth/register`                   | público     | Cadastro (cria as 19 categorias padrão)                                            |
+| `POST`                     | `/auth/login`                      | público     | Login; retorna o usuário e o token                                                 |
+| `GET`                      | `/auth/me`                         | autenticado | Usuário da sessão                                                                  |
+| `GET` · `POST`             | `/transactions`                    | autenticado | Lista paginada com filtros, busca e ordenação · cria transação                     |
+| `GET` · `PATCH` · `DELETE` | `/transactions/:id`                | autenticado | Detalhe · edição · exclusão                                                        |
+| `GET` · `POST`             | `/accounts`                        | autenticado | Contas com saldo atual · cria conta                                                |
+| `GET` · `PATCH` · `DELETE` | `/accounts/:id`                    | autenticado | Detalhe · edição e arquivamento · exclusão (só sem movimentações)                  |
+| `GET` · `POST`             | `/categories`                      | autenticado | Lista (filtro por tipo) · cria categoria                                           |
+| `GET` · `PATCH` · `DELETE` | `/categories/:id`                  | autenticado | Detalhe · edição · exclusão, com opção de mover as transações para outra categoria |
+| `GET` · `POST`             | `/transfers`                       | autenticado | Lista paginada · transfere entre contas                                            |
+| `GET` · `PATCH` · `DELETE` | `/transfers/:id`                   | autenticado | Detalhe · edição · exclusão                                                        |
+| `GET` · `POST`             | `/recurring-transactions`          | autenticado | Modelos com a próxima ocorrência · cria modelo e gera as ocorrências vencidas      |
+| `POST`                     | `/recurring-transactions/generate` | autenticado | Gera as ocorrências vencidas do usuário (pode ser chamado repetidamente)           |
+| `GET` · `PATCH` · `DELETE` | `/recurring-transactions/:id`      | autenticado | Detalhe · edição, pausa e retomada · exclusão                                      |
+| `GET` · `POST`             | `/budgets`                         | autenticado | Orçamentos do mês com consumo e status · cria orçamento                            |
+| `POST`                     | `/budgets/copy`                    | autenticado | Copia os orçamentos de um mês para outro                                           |
+| `GET` · `PATCH` · `DELETE` | `/budgets/:id`                     | autenticado | Detalhe · altera o limite · exclusão                                               |
+| `GET` · `POST`             | `/goals`                           | autenticado | Metas com progresso · cria meta                                                    |
+| `GET` · `PATCH` · `DELETE` | `/goals/:id`                       | autenticado | Detalhe · edição · exclusão                                                        |
+| `POST`                     | `/goals/:id/deposit`               | autenticado | Guarda um valor na meta                                                            |
+| `POST`                     | `/goals/:id/withdraw`              | autenticado | Retira um valor da meta                                                            |
+| `GET`                      | `/dashboard/summary`               | autenticado | Saldo total e totais do mês e do mês anterior                                      |
+| `GET`                      | `/dashboard/monthly-evolution`     | autenticado | Receitas, despesas e saldo de fechamento por mês                                   |
+| `GET`                      | `/dashboard/by-category`           | autenticado | Total e percentual por categoria, no mês ou em um período                          |
+| `POST`                     | `/imports/preview`                 | autenticado | Envio do CSV (multipart) e prévia com duplicatas e categorias sugeridas            |
+| `POST`                     | `/imports/confirm`                 | autenticado | Importa as linhas revisadas                                                        |
+
+Login e cadastro têm limite de 20 tentativas a cada 15 minutos por IP.
 
 ## Deploy
 
-API no **Render** e frontend na **Vercel**, com o banco no **Neon**. O arquivo
-[`render.yaml`](render.yaml) cria o serviço da API automaticamente (Blueprint), mas tudo
-também pode ser configurado à mão com os valores abaixo.
+| Serviço  | Plataforma | Configuração                                                                                                                         |
+| -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| API      | Render     | Root `backend` · Build `npm ci --include=dev && npm run build && npm run db:deploy` · Start `npm start` · Health check `/api/health` |
+| Frontend | Vercel     | Root `frontend` · Preset Vite · Build `npm run build` · Output `dist` (rotas do app configuradas em `frontend/vercel.json`)          |
+| Banco    | Neon       | Connection string com pooler em `DATABASE_URL` e direta em `DIRECT_URL`                                                              |
 
-### Banco (Neon)
+As migrations pendentes são aplicadas a cada deploy da API por `prisma migrate deploy`. Em produção, a
+API não inicia sem `CORS_ORIGIN`, e o build do frontend não conclui sem `VITE_API_URL`, para que uma
+configuração faltando apareça no deploy e não no navegador de quem usa.
 
-- Use um banco ou branch separado do de desenvolvimento.
-- Crie o projeto Neon **na mesma região do serviço no Render** (por exemplo, AWS `us-east-1` com
-  Render em Virginia). O Render não tem região na América do Sul: API nos EUA com banco em São
-  Paulo faz cada consulta cruzar o continente, e cada requisição da API faz várias consultas.
-- Pegue duas connection strings no painel: a **pooled** (host com `-pooler`), usada pela API, e a
-  **direct**, usada pelas migrations.
+## Autora
 
-### API (Render, Web Service)
+**Maria Carolina Magnani de Lyra**
 
-| Configuração      | Valor                                                        |
-| ----------------- | ------------------------------------------------------------ |
-| Root Directory    | `backend`                                                    |
-| Runtime           | Node (versão em `backend/.node-version`)                     |
-| Build Command     | `npm ci --include=dev && npm run build && npm run db:deploy` |
-| Start Command     | `npm start`                                                  |
-| Health Check Path | `/api/health`                                                |
-
-- `--include=dev` é necessário: o bundler (`tsup`) e a CLI do Prisma são `devDependencies`. Os
-  pacotes `@types` não são usados no build (o `tsup` não checa tipos) e o runtime não depende de
-  nenhuma `devDependency`.
-- `npm run db:deploy` (`prisma migrate deploy`) aplica as migrations pendentes a cada deploy, usando
-  a `DIRECT_URL`; é idempotente. Em planos pagos, dá para movê-lo para o **Pre-Deploy Command**.
-- No plano gratuito, o serviço hiberna após um período sem acesso; a primeira requisição depois
-  disso demora mais. O agendador de recorrências roda ao iniciar, então as ocorrências atrasadas
-  são geradas quando o serviço acorda.
-
-| Variável                         | Obrigatória | Exemplo / descrição                                                                                              |
-| -------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| `NODE_ENV`                       | sim         | `production`                                                                                                     |
-| `DATABASE_URL`                   | sim         | Connection string **pooled** do Neon, com `?sslmode=verify-full&channel_binding=require`                         |
-| `DIRECT_URL`                     | sim         | Connection string **direct** do Neon, com `?sslmode=require&channel_binding=require` (migrations)                |
-| `JWT_SECRET`                     | sim         | Texto aleatório com 32+ caracteres (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)  |
-| `CORS_ORIGIN`                    | sim         | `https://financas.vercel.app` (várias separadas por vírgula; `*` para previews: `https://financas-*.vercel.app`) |
-| `JWT_EXPIRES_IN`                 | não         | `1d` (padrão)                                                                                                    |
-| `BCRYPT_SALT_ROUNDS`             | não         | `10` (padrão)                                                                                                    |
-| `APP_TIMEZONE`                   | não         | `America/Sao_Paulo` (padrão): define "hoje" e o mês atual                                                        |
-| `RECURRING_JOB_INTERVAL_MINUTES` | não         | `60` (padrão); `0` desliga o agendador                                                                           |
-| `PORT`                           | —           | Definida pelo próprio Render; não configure                                                                      |
-
-Sem `CORS_ORIGIN` (ou com uma origem mal escrita), a API recusa iniciar em produção, em vez de
-bloquear o frontend silenciosamente.
-
-### Frontend (Vercel)
-
-| Configuração     | Valor           |
-| ---------------- | --------------- |
-| Root Directory   | `frontend`      |
-| Framework Preset | Vite            |
-| Build Command    | `npm run build` |
-| Output Directory | `dist`          |
-
-| Variável       | Obrigatória | Exemplo                                 |
-| -------------- | ----------- | --------------------------------------- |
-| `VITE_API_URL` | sim         | `https://financas-api.onrender.com/api` |
-
-- `VITE_API_URL` entra no bundle no momento do build: depois de alterá-la, faça um novo deploy. O
-  build de produção falha se ela estiver ausente.
-- [`frontend/vercel.json`](frontend/vercel.json) redireciona as rotas do app para o `index.html`
-  (links diretos como `/transacoes?transacao=<id>` funcionam) e define cache longo para os
-  arquivos com hash.
-
-### Ordem sugerida
-
-1. Criar o banco no Neon e copiar as duas connection strings.
-2. Criar a API no Render com as variáveis acima (use um `CORS_ORIGIN` provisório se ainda não
-   souber a URL da Vercel) e confirmar `https://<api>.onrender.com/api/health`.
-3. Criar o projeto na Vercel com `VITE_API_URL` apontando para a API.
-4. Atualizar `CORS_ORIGIN` no Render com a URL final da Vercel (o serviço reinicia sozinho).
-5. Opcional, dados de demonstração: na sua máquina, em `backend/`, rode
-   `DATABASE_URL="<pooled de produção>" DIRECT_URL="<direct de produção>" npm run db:seed`.
-
-## Testes
-
-```bash
-cd backend
-npm run test:unit         # sem banco: parsing de CSV, regras de recorrência, schemas, filtros
-npm run test:integration  # contra um banco PostgreSQL real e descartável
-npm test                  # os dois
-npm run test:coverage
-
-cd frontend
-npm test                  # componentes e páginas com Testing Library (API simulada)
-```
-
-Os testes de integração usam `DATABASE_URL_TEST`, um banco separado cujas tabelas são apagadas a
-cada execução (o setup se recusa a rodar se a URL for igual à de desenvolvimento ou se o nome do
-banco não contiver `test`). As migrations são aplicadas automaticamente antes dos testes. Cada
-teste cria seus próprios usuários, então os arquivos rodam em paralelo.
-
-O que é coberto:
-
-| Área                       | Exemplos de casos                                                                                                                                                                                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Saldos e agregações        | saldo com várias transações e transferências (sem multiplicar linhas no JOIN), somas acima do limite de `INTEGER`, resumo do mês, evolução com meses vazios e saldo acumulado, percentuais por categoria, orçamento só da categoria/mês, transferências fora de todos os totais |
-| Recorrentes sem duplicação | rodar várias vezes, 10 execuções concorrentes, execução atrasada com leitura antiga, ocorrência excluída não volta, dia 31, data final, pausa, conta arquivada, índice único no banco                                                                                           |
-| Parsing de CSV             | valores em formato brasileiro e internacional sem ponto flutuante, datas impossíveis, Windows-1252, preâmbulo do banco, linhas de saldo, crédito/débito, duplicatas exatas e possíveis                                                                                          |
-| Isolamento entre usuários  | GET/PATCH/DELETE em todos os recursos de outro usuário retornam 404, listagens e dashboards vazios, impossível referenciar conta/categoria alheia (inclusive direto no banco, pelas chaves compostas)                                                                           |
-
-Os testes de concorrência foram validados com mutações: removendo a trava do `last_run_date`, o
-`skipDuplicates` ou o advisory lock da importação, os testes correspondentes falham.
-
-## Scripts
-
-Disponíveis em `backend/` e `frontend/`:
-
-| Script              | Descrição                   |
-| ------------------- | --------------------------- |
-| `npm run dev`       | Servidor de desenvolvimento |
-| `npm run build`     | Build de produção           |
-| `npm run typecheck` | Checagem de tipos           |
-| `npm run lint`      | ESLint                      |
-| `npm run format`    | Prettier                    |
-| `npm test`          | Testes com Vitest           |
+- GitHub: [github.com/carollyra](https://github.com/carollyra)
+- LinkedIn: [linkedin.com/in/carolina-magnani-383141353](https://www.linkedin.com/in/carolina-magnani-383141353)
