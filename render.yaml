@@ -1,0 +1,28 @@
+# Render Blueprint (optional): creates the API service with these settings.
+# Secrets marked "sync: false" are asked for in the dashboard on creation.
+services:
+  - type: web
+    name: financas-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    # Pick the region closest to your Neon database
+    region: virginia
+    # --include=dev: tsup (bundler) and the Prisma CLI are devDependencies.
+    # Migrations run here because the free plan has no pre-deploy command.
+    buildCommand: npm ci --include=dev && npm run build && npm run db:deploy
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_TIMEZONE
+        value: America/Sao_Paulo

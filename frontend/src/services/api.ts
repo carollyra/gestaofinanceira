@@ -1,6 +1,7 @@
 import type { ApiErrorBody } from '@/types/api';
 import { tokenStorage } from '@/utils/token-storage';
 
+// Required in production builds (checked in vite.config.ts); local API otherwise
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3333/api';
 
 export const UNAUTHORIZED_EVENT = 'financas:unauthorized';

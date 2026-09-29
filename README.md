@@ -313,6 +313,85 @@ npm run dev            # http://localhost:5173
 - **Performance:** cada página é carregada sob demanda; os gráficos (Recharts) só são baixados com o
   dashboard.
 
+## Deploy
+
+API no **Render** e frontend na **Vercel**, com o banco no **Neon**. O arquivo
+[`render.yaml`](render.yaml) cria o serviço da API automaticamente (Blueprint), mas tudo
+também pode ser configurado à mão com os valores abaixo.
+
+### Banco (Neon)
+
+- Use um banco ou branch separado do de desenvolvimento.
+- Crie o projeto Neon **na mesma região do serviço no Render** (por exemplo, AWS `us-east-1` com
+  Render em Virginia). O Render não tem região na América do Sul: API nos EUA com banco em São
+  Paulo faz cada consulta cruzar o continente, e cada requisição da API faz várias consultas.
+- Pegue duas connection strings no painel: a **pooled** (host com `-pooler`), usada pela API, e a
+  **direct**, usada pelas migrations.
+
+### API (Render, Web Service)
+
+| Configuração      | Valor                                                        |
+| ----------------- | ------------------------------------------------------------ |
+| Root Directory    | `backend`                                                    |
+| Runtime           | Node (versão em `backend/.node-version`)                     |
+| Build Command     | `npm ci --include=dev && npm run build && npm run db:deploy` |
+| Start Command     | `npm start`                                                  |
+| Health Check Path | `/api/health`                                                |
+
+- `--include=dev` é necessário: o bundler (`tsup`) e a CLI do Prisma são `devDependencies`. Os
+  pacotes `@types` não são usados no build (o `tsup` não checa tipos) e o runtime não depende de
+  nenhuma `devDependency`.
+- `npm run db:deploy` (`prisma migrate deploy`) aplica as migrations pendentes a cada deploy, usando
+  a `DIRECT_URL`; é idempotente. Em planos pagos, dá para movê-lo para o **Pre-Deploy Command**.
+- No plano gratuito, o serviço hiberna após um período sem acesso; a primeira requisição depois
+  disso demora mais. O agendador de recorrências roda ao iniciar, então as ocorrências atrasadas
+  são geradas quando o serviço acorda.
+
+| Variável                         | Obrigatória | Exemplo / descrição                                                                                              |
+| -------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                       | sim         | `production`                                                                                                     |
+| `DATABASE_URL`                   | sim         | Connection string **pooled** do Neon, com `?sslmode=verify-full&channel_binding=require`                         |
+| `DIRECT_URL`                     | sim         | Connection string **direct** do Neon, com `?sslmode=require&channel_binding=require` (migrations)                |
+| `JWT_SECRET`                     | sim         | Texto aleatório com 32+ caracteres (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)  |
+| `CORS_ORIGIN`                    | sim         | `https://financas.vercel.app` (várias separadas por vírgula; `*` para previews: `https://financas-*.vercel.app`) |
+| `JWT_EXPIRES_IN`                 | não         | `1d` (padrão)                                                                                                    |
+| `BCRYPT_SALT_ROUNDS`             | não         | `10` (padrão)                                                                                                    |
+| `APP_TIMEZONE`                   | não         | `America/Sao_Paulo` (padrão): define "hoje" e o mês atual                                                        |
+| `RECURRING_JOB_INTERVAL_MINUTES` | não         | `60` (padrão); `0` desliga o agendador                                                                           |
+| `PORT`                           | —           | Definida pelo próprio Render; não configure                                                                      |
+
+Sem `CORS_ORIGIN` (ou com uma origem mal escrita), a API recusa iniciar em produção, em vez de
+bloquear o frontend silenciosamente.
+
+### Frontend (Vercel)
+
+| Configuração     | Valor           |
+| ---------------- | --------------- |
+| Root Directory   | `frontend`      |
+| Framework Preset | Vite            |
+| Build Command    | `npm run build` |
+| Output Directory | `dist`          |
+
+| Variável       | Obrigatória | Exemplo                                 |
+| -------------- | ----------- | --------------------------------------- |
+| `VITE_API_URL` | sim         | `https://financas-api.onrender.com/api` |
+
+- `VITE_API_URL` entra no bundle no momento do build: depois de alterá-la, faça um novo deploy. O
+  build de produção falha se ela estiver ausente.
+- [`frontend/vercel.json`](frontend/vercel.json) redireciona as rotas do app para o `index.html`
+  (links diretos como `/transacoes?transacao=<id>` funcionam) e define cache longo para os
+  arquivos com hash.
+
+### Ordem sugerida
+
+1. Criar o banco no Neon e copiar as duas connection strings.
+2. Criar a API no Render com as variáveis acima (use um `CORS_ORIGIN` provisório se ainda não
+   souber a URL da Vercel) e confirmar `https://<api>.onrender.com/api/health`.
+3. Criar o projeto na Vercel com `VITE_API_URL` apontando para a API.
+4. Atualizar `CORS_ORIGIN` no Render com a URL final da Vercel (o serviço reinicia sozinho).
+5. Opcional, dados de demonstração: na sua máquina, em `backend/`, rode
+   `DATABASE_URL="<pooled de produção>" DIRECT_URL="<direct de produção>" npm run db:seed`.
+
 ## Testes
 
 ```bash
