@@ -10,7 +10,7 @@ import { MoneyInput } from '@/components/ui/MoneyInput';
 import { Select } from '@/components/ui/Select';
 import { TextField } from '@/components/ui/TextField';
 import type { TransferInput } from '@/services/accounts.service';
-import type { Account } from '@/types/api';
+import type { Account, Transfer } from '@/types/api';
 import { isValidDate } from '@/utils/date';
 import { applyApiErrors } from '@/utils/form-errors';
 import { formatCurrency } from '@/utils/money';
@@ -33,13 +33,15 @@ type Values = z.infer<typeof schema>;
 
 interface TransferFormProps {
   accounts: Account[];
+  // When editing: the form starts with its values
+  transfer?: Transfer;
   onSubmit: (input: TransferInput) => Promise<void>;
   onCancel: () => void;
 }
 
 // Moves money between two own accounts: not an income nor an expense, so it
 // changes balances but never the dashboard totals
-export function TransferForm({ accounts, onSubmit, onCancel }: TransferFormProps) {
+export function TransferForm({ accounts, transfer, onSubmit, onCancel }: TransferFormProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
@@ -49,13 +51,21 @@ export function TransferForm({ accounts, onSubmit, onCancel }: TransferFormProps
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      fromAccountId: accounts[0]?.id ?? '',
-      toAccountId: accounts[1]?.id ?? '',
-      amount: 0,
-      date: todayLocal(),
-      description: 'Transferência',
-    },
+    defaultValues: transfer
+      ? {
+          fromAccountId: transfer.fromAccount.id,
+          toAccountId: transfer.toAccount.id,
+          amount: transfer.amount,
+          date: transfer.date,
+          description: transfer.description,
+        }
+      : {
+          fromAccountId: accounts[0]?.id ?? '',
+          toAccountId: accounts[1]?.id ?? '',
+          amount: 0,
+          date: todayLocal(),
+          description: 'Transferência',
+        },
   });
   const fromAccountId = useWatch({ control, name: 'fromAccountId' });
   const from = accounts.find((a) => a.id === fromAccountId);
@@ -130,7 +140,7 @@ export function TransferForm({ accounts, onSubmit, onCancel }: TransferFormProps
           Cancelar
         </Button>
         <Button type="submit" loading={isSubmitting}>
-          Transferir
+          {transfer ? 'Salvar alterações' : 'Transferir'}
         </Button>
       </div>
     </form>

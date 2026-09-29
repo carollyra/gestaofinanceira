@@ -6,7 +6,7 @@ import type { TransactionList } from '@/types/api';
 // A transaction changes lists, dashboard numbers, account balances and budgets
 function invalidateMoneyData(queryClient: QueryClient) {
   return Promise.all(
-    ['transactions', 'dashboard', 'accounts', 'budgets'].map((key) =>
+    ['transactions', 'transaction', 'dashboard', 'accounts', 'budgets'].map((key) =>
       queryClient.invalidateQueries({ queryKey: [key] }),
     ),
   );

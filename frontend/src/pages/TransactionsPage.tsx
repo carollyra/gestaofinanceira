@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { useRef, useState } from 'react';
 
 import { ErrorState } from '@/components/dashboard/states';
+import { TransactionDetailDrawer } from '@/components/details/TransactionDetailDrawer';
 import { TransactionCardsSkeleton, TransactionTableSkeleton } from '@/components/skeletons';
 import { TransactionCards } from '@/components/transactions/TransactionCards';
 import {
@@ -15,6 +16,7 @@ import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
+import { useDetailRoute } from '@/hooks/useDetailRoute';
 import { useDirectionalNudge } from '@/hooks/useDirectionalNudge';
 import { useAccounts, useCategories } from '@/hooks/useLookups';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -23,6 +25,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import type { TransactionSortField } from '@/services/transactions.service';
 import type { Transaction } from '@/types/api';
 import { cn } from '@/utils/cn';
+import { TRANSACTION_DETAIL_KEYS } from '@/utils/detail-keys';
 import { formatCurrency } from '@/utils/money';
 import { countActiveFilters, filtersToQuery, PAGE_SIZES } from '@/utils/transaction-filters';
 
@@ -60,6 +63,25 @@ export function TransactionsPage() {
     }
     return opener.current?.isConnected ? opener.current : listRef.current;
   };
+  // Detail drawer: the open transaction lives in the URL next to the filters
+  const detail = useDetailRoute(TRANSACTION_DETAIL_KEYS);
+  const lastOpened = useRef<string | null>(null);
+  // Set when a deletion is confirmed: that row is about to leave the list
+  const deletedId = useRef<string | null>(null);
+  const onOpen = (transaction: Transaction) => {
+    lastOpened.current = transaction.id;
+    detail.open('transacao', transaction.id);
+  };
+  // Focus goes back to the row that opened the drawer, or to the list
+  const focusAfterDrawer = () => {
+    const id = lastOpened.current ?? detail.values.transacao;
+    if (id && id === deletedId.current) return listRef.current;
+    const row =
+      id &&
+      document.querySelector<HTMLElement>(`[data-transaction-id="${id}"] [data-detail-trigger]`);
+    return row || listRef.current;
+  };
+
   const onEdit = (transaction: Transaction) => openDialog({ kind: 'edit', transaction });
   const onDelete = (transaction: Transaction) => openDialog({ kind: 'delete', transaction });
 
@@ -194,6 +216,7 @@ export function TransactionsPage() {
               <div className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900">
                 <TransactionTable
                   transactions={data.data}
+                  onOpen={onOpen}
                   onEdit={onEdit}
                   onDelete={onDelete}
                   sortBy={filters.sortBy}
@@ -202,7 +225,7 @@ export function TransactionsPage() {
                 />
               </div>
             ) : (
-              <TransactionCards transactions={data.data} onEdit={onEdit} />
+              <TransactionCards transactions={data.data} onOpen={onOpen} />
             )}
           </motion.div>
         )}
@@ -240,9 +263,18 @@ export function TransactionsPage() {
         onChange={setDialog}
         defaultAccountId={filters.accountId}
         returnFocusTo={focusAfterDialog}
-        onDeleteConfirmed={() => {
+        onDeleteConfirmed={(transaction) => {
           openerDeleted.current = true;
+          deletedId.current = transaction.id;
+          // Deleting from the drawer closes it: the transaction no longer exists
+          if (detail.values.transacao === transaction.id) detail.close();
         }}
+      />
+
+      <TransactionDetailDrawer
+        onEdit={onEdit}
+        onDelete={onDelete}
+        returnFocusTo={focusAfterDrawer}
       />
     </div>
   );

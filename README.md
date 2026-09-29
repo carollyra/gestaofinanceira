@@ -48,6 +48,9 @@ recorrências, orçamentos, metas de economia, importação de CSV e dashboard c
   `transfers`, e não como um tipo de transação: totais de entrada/saída e relatórios por categoria
   leem apenas `transactions`, então é impossível uma transferência inflar esses números. Elas
   entram só no saldo das contas, e o saldo total não muda (o que sai de uma conta entra na outra).
+- **Origem de cada transação.** O campo `source` (`MANUAL`, `IMPORT`, `RECURRING`) e o nome do
+  arquivo importado ficam gravados na transação; a migration preenche `RECURRING` para as
+  ocorrências já geradas.
 - **Datas sem fuso.** Datas de transação usam o tipo `date` do PostgreSQL, sem horário.
 
 ## Modelagem
@@ -247,6 +250,14 @@ npm run dev            # http://localhost:5173
   pode ser compartilhada e sobrevive a recarregar e voltar. Tabela com cabeçalhos ordenáveis
   (`aria-sort`) no desktop; no celular, cartões agrupados por dia, filtros recolhidos atrás de um
   botão e navegação fixa na parte de baixo da tela.
+- **Detalhe em drawer:** clicar numa transação abre um painel lateral (no celular, uma folha que sobe
+  de baixo) com valor, descrição, observações, categoria, conta de origem ou destino, data por
+  extenso, horário de registro e a origem: lançada manualmente, importada de CSV (com o nome do
+  arquivo) ou gerada por uma recorrência, com link para o detalhe da recorrência. O item aberto fica
+  na URL junto com os filtros (`/transacoes?tipo=despesa&transacao=<id>`): o link pode ser
+  compartilhado e o botão voltar do navegador fecha o drawer. Esc, clique fora e o botão de fechar
+  também fecham; o foco fica preso no drawer e volta para a linha. Editar e excluir abrem por cima
+  (só o diálogo do topo responde ao Esc). Transferências seguem o mesmo padrão na tela de contas.
 - **Formulário de transação:** criar e editar no mesmo modal (acessível: foco preso, Esc fecha,
   foco volta a quem abriu). O campo de valor funciona como app de banco (os dígitos entram pelos
   centavos: "1250" vira R$ 12,50) e converte para centavos inteiros ali mesmo. As categorias

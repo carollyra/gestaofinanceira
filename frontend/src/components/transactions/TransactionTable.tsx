@@ -12,6 +12,8 @@ import { TransactionAmount } from './TransactionAmount';
 
 interface TransactionTableProps {
   transactions: Transaction[];
+  // Opens the detail drawer (click anywhere on the row, or the description)
+  onOpen: (transaction: Transaction) => void;
   onEdit: (transaction: Transaction) => void;
   onDelete: (transaction: Transaction) => void;
   sortBy: TransactionSortField;
@@ -24,6 +26,7 @@ const actionButton =
 
 export function TransactionTable({
   transactions,
+  onOpen,
   onEdit,
   onDelete,
   sortBy,
@@ -62,16 +65,24 @@ export function TransactionTable({
               animate={{ opacity: 1, y: 0, transition: { ...spring, delay: staggerDelay(index) } }}
               exit={{ opacity: 0, transition: spring }}
               transition={spring}
-              className="group border-b border-zinc-800/60 last:border-0 hover:bg-zinc-800/30"
+              data-transaction-id={t.id}
+              onClick={() => onOpen(t)}
+              className="group cursor-pointer border-b border-zinc-800/60 last:border-0 hover:bg-zinc-800/30"
             >
               <td className="px-3 py-3 whitespace-nowrap text-zinc-400 tabular-nums">
                 {formatDate(t.date)}
               </td>
               <td className="max-w-80 px-3 py-3">
                 <div className="flex items-center gap-1.5">
+                  {/* Keyboard path to the detail; the whole row is clickable with the pointer */}
                   <button
                     type="button"
-                    onClick={() => onEdit(t)}
+                    data-detail-trigger
+                    aria-haspopup="dialog"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpen(t);
+                    }}
                     className="truncate rounded text-left text-zinc-100 hover:underline focus-visible:outline-2 focus-visible:outline-emerald-400"
                   >
                     {t.description}
@@ -109,7 +120,10 @@ export function TransactionTable({
                 <div className="flex justify-end gap-1 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
                   <button
                     type="button"
-                    onClick={() => onEdit(t)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onEdit(t);
+                    }}
                     aria-label={`Editar ${t.description}`}
                     className={`${actionButton} hover:bg-zinc-800 hover:text-zinc-100`}
                   >
@@ -117,7 +131,10 @@ export function TransactionTable({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onDelete(t)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDelete(t);
+                    }}
                     aria-label={`Excluir ${t.description}`}
                     className={`${actionButton} hover:bg-red-500/10 hover:text-red-400`}
                   >

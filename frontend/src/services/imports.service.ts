@@ -28,6 +28,11 @@ export const importsService = {
     if (mapping) form.append('mapping', JSON.stringify(mapping));
     return apiRequest<ImportPreview>('/imports/preview', { method: 'POST', body: form });
   },
-  confirm: (body: { accountId: string; rows: ConfirmRow[]; skipDuplicates: boolean }) =>
+  confirm: (body: {
+    accountId: string;
+    rows: ConfirmRow[];
+    skipDuplicates: boolean;
+    fileName?: string;
+  }) =>
     apiRequest<{ created: number; skipped: number }>('/imports/confirm', { method: 'POST', body }),
 };

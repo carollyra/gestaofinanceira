@@ -10,12 +10,12 @@ import { TransactionAmount } from './TransactionAmount';
 
 interface TransactionCardsProps {
   transactions: Transaction[];
-  // Tapping a card opens it for editing (delete lives in the edit dialog)
-  onEdit: (transaction: Transaction) => void;
+  // Tapping a card opens its detail (edit and delete live there)
+  onOpen: (transaction: Transaction) => void;
 }
 
 // Mobile layout: transactions grouped under a heading per day
-export function TransactionCards({ transactions, onEdit }: TransactionCardsProps) {
+export function TransactionCards({ transactions, onOpen }: TransactionCardsProps) {
   const groups = new Map<string, Transaction[]>();
   for (const t of transactions) groups.set(t.date, [...(groups.get(t.date) ?? []), t]);
   const position = new Map(transactions.map((t, i) => [t.id, i]));
@@ -53,12 +53,15 @@ export function TransactionCards({ transactions, onEdit }: TransactionCardsProps
                       }}
                       exit={{ opacity: 0, height: 0, transition: spring }}
                       transition={spring}
+                      data-transaction-id={t.id}
                       className="overflow-hidden"
                     >
                       <button
                         type="button"
-                        onClick={() => onEdit(t)}
-                        aria-label={`Editar ${t.description}`}
+                        data-detail-trigger
+                        aria-haspopup="dialog"
+                        onClick={() => onOpen(t)}
+                        aria-label={`Ver detalhes: ${t.description}`}
                         className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-zinc-800/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-400"
                       >
                         {t.category ? (

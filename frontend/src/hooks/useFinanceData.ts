@@ -55,7 +55,7 @@ export function useCreateTransfer() {
   // Transfers change account balances only, never income/expense totals
   return useInvalidatingMutation(
     (input: TransferInput) => accountsService.transfer(input),
-    ['accounts'],
+    ['accounts', 'transfers'],
   );
 }
 

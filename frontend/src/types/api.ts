@@ -82,6 +82,10 @@ export interface Transaction {
   description: string;
   notes: string | null;
   recurringTransactionId: string | null;
+  source: 'MANUAL' | 'IMPORT' | 'RECURRING';
+  importFileName: string | null;
+  createdAt: string;
+  updatedAt: string;
   account: { id: string; name: string; color: string; type: AccountType };
   category: { id: string; name: string; color: string; icon: string } | null;
 }
@@ -210,4 +214,41 @@ export interface ColumnMapping {
   amount?: string;
   credit?: string;
   debit?: string;
+}
+
+export type RecurrenceFrequency = 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+export interface RecurringTransaction {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  description: string;
+  notes: string | null;
+  frequency: RecurrenceFrequency;
+  day: number;
+  startDate: string;
+  endDate: string | null;
+  lastRunDate: string | null;
+  nextOccurrence: string | null;
+  active: boolean;
+  account: { id: string; name: string; color: string; type: AccountType };
+  category: { id: string; name: string; color: string; icon: string } | null;
+  _count: { transactions: number };
+}
+
+export interface Transfer {
+  id: string;
+  amount: number;
+  date: string;
+  description: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  fromAccount: { id: string; name: string; color: string; type: AccountType };
+  toAccount: { id: string; name: string; color: string; type: AccountType };
+}
+
+export interface TransferList {
+  data: Transfer[];
+  meta: PaginationMeta;
 }

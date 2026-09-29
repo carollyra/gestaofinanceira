@@ -41,6 +41,8 @@ export interface TransactionInput {
 export const transactionsService = {
   list: (query: TransactionQuery, signal?: AbortSignal) =>
     apiRequest<TransactionList>(`/transactions?${toSearchParams(query)}`, { signal }),
+  get: (id: string, signal?: AbortSignal) =>
+    apiRequest<Transaction>(`/transactions/${id}`, { signal }),
   create: (input: TransactionInput) =>
     apiRequest<Transaction>('/transactions', { method: 'POST', body: input }),
   update: (id: string, changes: Partial<TransactionInput>) =>

@@ -74,6 +74,8 @@ export function ImportPage() {
         accountId: upload.accountId,
         rows: buildConfirmRows(preview.rows, selected, overrides),
         skipDuplicates: shouldSkipDuplicates(preview.rows, selected),
+        // Kept on each transaction so its detail can show where it came from
+        fileName: upload.file.name,
       });
       setResult(response);
       setStep('done');

@@ -34,6 +34,10 @@ const transaction: Transaction = {
   description: 'Mercado',
   notes: null,
   recurringTransactionId: null,
+  source: 'MANUAL',
+  importFileName: null,
+  createdAt: '2026-09-10T15:30:00.000Z',
+  updatedAt: '2026-09-10T15:30:00.000Z',
   account: { id: 'acc-1', name: 'Conta', color: '#000000', type: 'CHECKING' },
   category: { id: 'cat-1', name: 'Mercado', color: '#000000', icon: 'shopping-cart' },
 };

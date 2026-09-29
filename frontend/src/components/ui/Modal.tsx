@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { type ReactNode, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useDialogBehavior } from '@/hooks/useDialogBehavior';
 import { spring } from '@/utils/motion';
 
 interface ModalProps {
@@ -17,9 +18,6 @@ interface ModalProps {
   children: ReactNode;
 }
 
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
 // Accessible dialog: focus moves inside and is trapped, Esc and the backdrop
 // close it, and focus returns to the element that opened it. The panel grows
 // from that element (transform-origin at the trigger), so it reads as coming
@@ -28,13 +26,14 @@ export function Modal({ open, onClose, title, description, returnFocusTo, childr
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
   const [origin, setOrigin] = useState('50% 50%');
+  const { triggerRef, restoreFocus } = useDialogBehavior(open, panelRef, onClose, {
+    returnFocusTo,
+  });
 
+  // The panel grows from the opener: transform-origin at its center
   useLayoutEffect(() => {
     if (!open || !panelRef.current) return;
-    // Runs before focus moves into the dialog: the focused element is the trigger
-    triggerRef.current ??= document.activeElement as HTMLElement | null;
     const trigger = triggerRef.current?.getBoundingClientRect();
     const panel = panelRef.current.getBoundingClientRect();
     if (trigger && trigger.width > 0) {
@@ -42,51 +41,10 @@ export function Modal({ open, onClose, title, description, returnFocusTo, childr
         `${trigger.left + trigger.width / 2 - panel.left}px ${trigger.top + trigger.height / 2 - panel.top}px`,
       );
     }
-    panelRef.current.querySelector<HTMLElement>(FOCUSABLE)?.focus();
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      if (event.key !== 'Tab' || !panelRef.current) return;
-
-      const focusable = [...panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open, onClose]);
-
-  const handleExitComplete = () => {
-    const target =
-      returnFocusTo?.() ?? (triggerRef.current?.isConnected ? triggerRef.current : null);
-    target?.focus();
-    triggerRef.current = null;
-  };
+  }, [open, triggerRef]);
 
   return createPortal(
-    <AnimatePresence onExitComplete={handleExitComplete}>
+    <AnimatePresence onExitComplete={restoreFocus}>
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
           <motion.div

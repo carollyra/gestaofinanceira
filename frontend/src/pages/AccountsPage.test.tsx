@@ -35,8 +35,21 @@ const baseAccounts = [
   },
 ];
 
+const baseTransfer = {
+  id: 'tr1',
+  amount: 40_000,
+  date: '2026-09-03',
+  description: 'Saque',
+  notes: null,
+  createdAt: '2026-09-03T12:00:00.000Z',
+  updatedAt: '2026-09-03T12:00:00.000Z',
+  fromAccount: { id: 'a1', name: 'Conta corrente', color: '#3b82f6', type: 'CHECKING' },
+  toAccount: { id: 'a2', name: 'Carteira', color: '#f59e0b', type: 'WALLET' },
+};
+
 function setup(options: { deleteConflict?: boolean } = {}) {
   let accounts = baseAccounts.map((a) => ({ ...a }));
+  let transfers = [{ ...baseTransfer }];
   return fakeApi(({ url, method, body }) => {
     if (url.pathname.endsWith('/accounts') && method === 'GET')
       return { status: 200, body: { data: accounts } };
@@ -50,7 +63,27 @@ function setup(options: { deleteConflict?: boolean } = {}) {
       accounts = [...accounts, created as (typeof accounts)[number]];
       return { status: 201, body: created };
     }
-    if (url.pathname.endsWith('/transfers')) return { status: 201, body: {} };
+    if (url.pathname.endsWith('/transfers') && method === 'POST') return { status: 201, body: {} };
+    if (url.pathname.endsWith('/transfers') && method === 'GET') {
+      return {
+        status: 200,
+        body: {
+          data: transfers,
+          meta: { page: 1, pageSize: 8, total: transfers.length, totalPages: 1 },
+        },
+      };
+    }
+    if (url.pathname.includes('/transfers/')) {
+      const transferId = url.pathname.split('/').pop();
+      if (method === 'GET')
+        return { status: 200, body: transfers.find((t) => t.id === transferId) };
+      if (method === 'PATCH')
+        return { status: 200, body: { ...transfers[0], ...(body as object) } };
+      if (method === 'DELETE') {
+        transfers = transfers.filter((t) => t.id !== transferId);
+        return { status: 204 };
+      }
+    }
     const id = url.pathname.split('/').pop();
     if (method === 'PATCH') {
       accounts = accounts.map((a) => (a.id === id ? { ...a, ...(body as object) } : a));
@@ -160,5 +193,47 @@ describe('AccountsPage', () => {
       amount: 40_000,
       description: 'Transferência',
     });
+  });
+
+  it('opens a transfer in a drawer kept in the URL, and edits only what changed', async () => {
+    const { requests } = setup();
+    const { user } = renderWithProviders(<AccountsPage />, { route: '/contas' });
+
+    await user.click(await screen.findByRole('button', { name: /Ver transferência: Saque/ }));
+
+    const drawer = await screen.findByRole('dialog', { name: 'Detalhes da transferência: Saque' });
+    expect(screen.getByTestId('location')).toHaveTextContent('/contas?transferencia=tr1');
+    expect(normalize(drawer.textContent)).toContain('R$ 400,00');
+    expect(drawer).toHaveTextContent('De Conta corrente');
+    expect(drawer).toHaveTextContent('Para Carteira');
+    expect(drawer).toHaveTextContent('Quinta-feira, 3 de setembro de 2026');
+
+    await user.click(within(drawer).getByRole('button', { name: 'Editar' }));
+    const form = within(await screen.findByRole('dialog', { name: 'Editar transferência' }));
+    await user.clear(form.getByLabelText('Descrição'));
+    await user.type(form.getByLabelText('Descrição'), 'Saque no caixa');
+    await user.click(form.getByRole('button', { name: 'Salvar alterações' }));
+
+    await waitFor(() => expect(requests('PATCH', '/transfers/')).toHaveLength(1));
+    expect(requests('PATCH', '/transfers/')[0]!.body).toEqual({ description: 'Saque no caixa' });
+  });
+
+  it('deletes a transfer from its drawer and closes it', async () => {
+    const { requests } = setup();
+    const { user } = renderWithProviders(<AccountsPage />, { route: '/contas?transferencia=tr1' });
+
+    const drawer = await screen.findByRole('dialog', { name: 'Detalhes da transferência: Saque' });
+    await user.click(within(drawer).getByRole('button', { name: 'Excluir' }));
+    await user.click(
+      within(await screen.findByRole('dialog', { name: 'Excluir transferência?' })).getByRole(
+        'button',
+        { name: 'Excluir' },
+      ),
+    );
+
+    await waitFor(() => expect(requests('DELETE', '/transfers/')).toHaveLength(1));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/contas$/);
+    expect(await screen.findByText('Nenhuma transferência ainda.')).toBeInTheDocument();
   });
 });
