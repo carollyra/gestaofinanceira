@@ -20,22 +20,6 @@ A conta de demonstração já vem com **12 meses de dados**: três contas, recei
 categorizadas, lançamentos gerados por recorrências, transferências entre contas, orçamentos e
 metas em andamento.
 
-![Dashboard](docs/screenshots/dashboard.png)
-
-<p align="center">
-  <img src="docs/screenshots/mobile-dashboard.png" alt="Dashboard no celular" width="260" />
-  &nbsp;
-  <img src="docs/screenshots/mobile-transactions.png" alt="Transações no celular" width="260" />
-</p>
-
-| Login                                       | Transações                                       |
-| ------------------------------------------- | ------------------------------------------------ |
-| ![Login](docs/screenshots/login.png)        | ![Transações](docs/screenshots/transactions.png) |
-| **Orçamentos**                              | **Metas**                                        |
-| ![Orçamentos](docs/screenshots/budgets.png) | ![Metas](docs/screenshots/goals.png)             |
-
-![Revisão da importação de CSV](docs/screenshots/import-review.png)
-
 ## Sumário
 
 - [Stack](#stack)
@@ -240,7 +224,6 @@ usuário são escapados: sem isso, buscar "50%" ou "%" retornaria todas as trans
 │       ├── contexts/            # autenticação e avisos
 │       ├── utils/               # formatação, regras de senha, filtros, animações
 │       └── types/               # tipos das respostas da API
-├── docs/screenshots/            # imagens deste README
 └── render.yaml                  # configuração opcional do serviço no Render
 ```
 
